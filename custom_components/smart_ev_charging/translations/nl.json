@@ -20,5 +20,40 @@
       }
     }
   },
+  "entity": {
+    "datetime": {
+      "departure": {
+        "name": "Vertrektijd"
+      }
+    },
+    "number": {
+      "charge_efficiency": {
+        "name": "Laadefficiëntie"
+      },
+      "charge_power": {
+        "name": "Laadvermogen"
+      },
+      "target_soc": {
+        "name": "Gewenste SOC"
+      }
+    },
+    "sensor": {
+      "current_soc": {
+        "name": "Huidige SOC"
+      },
+      "latest_start": {
+        "name": "Uiterste starttijd"
+      },
+      "required_battery_energy": {
+        "name": "Benodigde accu-energie"
+      },
+      "required_charge_time": {
+        "name": "Benodigde laadtijd"
+      },
+      "required_grid_energy": {
+        "name": "Benodigde netenergie"
+      }
+    }
+  },
   "title": "Smart EV Charging"
 }
