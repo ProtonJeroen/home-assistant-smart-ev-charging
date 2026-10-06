@@ -5,8 +5,8 @@
   "config_flow": true,
   "documentation": "https://github.com/ProtonJeroen/home-assistant-smart-ev-charging",
   "domain": "smart_ev_charging",
-  "integration_type": "helper",
+  "integration_type": "hub",
   "issue_tracker": "https://github.com/ProtonJeroen/home-assistant-smart-ev-charging/issues",
   "name": "Smart EV Charging",
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
