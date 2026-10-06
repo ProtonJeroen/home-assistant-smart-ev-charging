@@ -1,3 +1,59 @@
 {
+  "config": {
+    "abort": {
+      "already_configured": "This SOC entity is already configured."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "battery_capacity_kwh": "Nominal usable battery capacity",
+          "name": "Vehicle name",
+          "soc_entity": "SOC entity"
+        },
+        "data_description": {
+          "battery_capacity_kwh": "Enter the initial usable battery capacity in kWh. Battery learning will be able to refine this later.",
+          "name": "A friendly name for this vehicle.",
+          "soc_entity": "Select the Home Assistant entity that reports the vehicle state of charge in percent."
+        },
+        "description": "Configure the vehicle data used by Smart EV Charging.",
+        "title": "Set up vehicle"
+      }
+    }
+  },
+  "entity": {
+    "datetime": {
+      "departure": {
+        "name": "Departure"
+      }
+    },
+    "number": {
+      "charge_efficiency": {
+        "name": "Charge efficiency"
+      },
+      "charge_power": {
+        "name": "Charge power"
+      },
+      "target_soc": {
+        "name": "Target SOC"
+      }
+    },
+    "sensor": {
+      "current_soc": {
+        "name": "Current SOC"
+      },
+      "latest_start": {
+        "name": "Latest start"
+      },
+      "required_battery_energy": {
+        "name": "Required battery energy"
+      },
+      "required_charge_time": {
+        "name": "Required charge time"
+      },
+      "required_grid_energy": {
+        "name": "Required grid energy"
+      }
+    }
+  },
   "title": "Smart EV Charging"
 }
