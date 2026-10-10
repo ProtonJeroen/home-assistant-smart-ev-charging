@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     CURRENCY_EURO,
     PERCENTAGE,
+    UnitOfElectricCurrent,
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTime,
@@ -31,24 +32,35 @@ async def async_setup_entry(
 ) -> None:
     """Set up calculated sensors."""
     runtime = entry.runtime_data
-    async_add_entities(
-        [
-            SmartEVCurrentSOCSensor(runtime),
-            SmartEVRequiredBatteryEnergySensor(runtime),
-            SmartEVRequiredGridEnergySensor(runtime),
-            SmartEVRequiredChargeTimeSensor(runtime),
-            SmartEVLatestStartSensor(runtime),
-            SmartEVStatusSensor(runtime),
-            SmartEVRequestedPowerSensor(runtime),
-            SmartEVCurrentChargeStartSensor(runtime),
-            SmartEVCurrentChargeEndSensor(runtime),
-            SmartEVNextChargeStartSensor(runtime),
-            SmartEVChargingPlanSensor(runtime),
-            SmartEVPlannedChargeMinutesSensor(runtime),
-            SmartEVEstimatedChargeCostSensor(runtime),
-            SmartEVAverageChargePriceSensor(runtime),
-        ]
-    )
+    entities: list[SensorEntity] = [
+        SmartEVCurrentSOCSensor(runtime),
+        SmartEVRequiredBatteryEnergySensor(runtime),
+        SmartEVRequiredGridEnergySensor(runtime),
+        SmartEVRequiredChargeTimeSensor(runtime),
+        SmartEVLatestStartSensor(runtime),
+        SmartEVStatusSensor(runtime),
+        SmartEVRequestedPowerSensor(runtime),
+        SmartEVCurrentChargeStartSensor(runtime),
+        SmartEVCurrentChargeEndSensor(runtime),
+        SmartEVNextChargeStartSensor(runtime),
+        SmartEVChargingPlanSensor(runtime),
+        SmartEVPlannedChargeMinutesSensor(runtime),
+        SmartEVEstimatedChargeCostSensor(runtime),
+        SmartEVAverageChargePriceSensor(runtime),
+    ]
+
+    if runtime.price_entity_id:
+        entities.append(SmartEVPriceChartSensor(runtime))
+    if runtime.charger_status_entity_id:
+        entities.append(SmartEVChargerStatusSensor(runtime))
+    if runtime.charger_power_entity_id:
+        entities.append(SmartEVChargerPowerSensor(runtime))
+    if runtime.charger_current_entity_id:
+        entities.append(SmartEVChargerCurrentSensor(runtime))
+    if runtime.charger_session_energy_entity_id:
+        entities.append(SmartEVChargerSessionEnergySensor(runtime))
+
+    async_add_entities(entities)
 
 
 class SmartEVCurrentSOCSensor(SmartEVChargingEntity, SensorEntity):
@@ -329,3 +341,110 @@ class SmartEVAverageChargePriceSensor(SmartEVChargingEntity, SensorEntity):
     def native_value(self) -> float | None:
         value = self.runtime.average_charge_price
         return None if value is None else round(value, 5)
+
+
+class SmartEVPriceChartSensor(SmartEVChargingEntity, SensorEntity):
+    """Chart-ready price and smart-charge plan data."""
+
+    _attr_translation_key = "price_chart"
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "price_chart")
+
+    @property
+    def available(self) -> bool:
+        return bool(self.runtime.price_chart_bars)
+
+    @property
+    def native_value(self) -> int:
+        return len(self.runtime.price_chart_bars)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "bars": self.runtime.price_chart_bars,
+            "price_source": self.runtime.price_entity_id,
+        }
+
+
+class SmartEVChargerStatusSensor(SmartEVChargingEntity, SensorEntity):
+    """Read-only normalized charger status."""
+
+    _attr_translation_key = "charger_status"
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_status")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.charger_status is not None
+
+    @property
+    def native_value(self) -> str | None:
+        return self.runtime.charger_status
+
+
+class SmartEVChargerPowerSensor(SmartEVChargingEntity, SensorEntity):
+    """Read-only charger power normalized to watts."""
+
+    _attr_translation_key = "charger_power"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_power")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.charger_power_w is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.charger_power_w
+        return None if value is None else round(value, 1)
+
+
+class SmartEVChargerCurrentSensor(SmartEVChargingEntity, SensorEntity):
+    """Read-only charger current normalized to amperes."""
+
+    _attr_translation_key = "charger_current"
+    _attr_device_class = SensorDeviceClass.CURRENT
+    _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_current")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.charger_current_a is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.charger_current_a
+        return None if value is None else round(value, 2)
+
+
+class SmartEVChargerSessionEnergySensor(SmartEVChargingEntity, SensorEntity):
+    """Read-only charger session energy normalized to kWh."""
+
+    _attr_translation_key = "charger_session_energy"
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_session_energy")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.charger_session_energy_kwh is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.charger_session_energy_kwh
+        return None if value is None else round(value, 3)
