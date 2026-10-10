@@ -95,7 +95,7 @@
         "name": "Uiterste starttijd"
       },
       "next_charge_start": {
-        "name": "Volgende laadstart"
+        "name": "Volgende toekomstige laadstart"
       },
       "requested_power": {
         "name": "Aangevraagd vermogen"
@@ -124,6 +124,18 @@
           "waiting_for_price_data": "Wachten op prijsdata",
           "waiting_for_smart_slot": "Wachten op slim laadmoment"
         }
+      },
+      "current_charge_start": {
+        "name": "Huidig laadblok start"
+      },
+      "current_charge_end": {
+        "name": "Huidig laadblok einde"
+      },
+      "charging_plan": {
+        "name": "Laadplan"
+      },
+      "planned_charge_minutes": {
+        "name": "Geplande laadduur"
       }
     }
   },
