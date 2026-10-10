@@ -18,6 +18,20 @@ CONF_SOC_ENTITY = "soc_entity"
 CONF_BATTERY_CAPACITY_KWH = "battery_capacity_kwh"
 CONF_PRICE_ENTITY = "price_entity"
 
+CONF_CHARGER_STATUS_ENTITY = "charger_status_entity"
+CONF_CHARGER_CONNECTED_ENTITY = "charger_connected_entity"
+CONF_CHARGER_POWER_ENTITY = "charger_power_entity"
+CONF_CHARGER_CURRENT_ENTITY = "charger_current_entity"
+CONF_CHARGER_SESSION_ENERGY_ENTITY = "charger_session_energy_entity"
+
+CHARGER_OPTION_KEYS = (
+    CONF_CHARGER_STATUS_ENTITY,
+    CONF_CHARGER_CONNECTED_ENTITY,
+    CONF_CHARGER_POWER_ENTITY,
+    CONF_CHARGER_CURRENT_ENTITY,
+    CONF_CHARGER_SESSION_ENERGY_ENTITY,
+)
+
 CONF_TARGET_SOC = "target_soc"
 CONF_CHARGE_POWER_KW = "charge_power_kw"
 CONF_CHARGE_EFFICIENCY = "charge_efficiency"
