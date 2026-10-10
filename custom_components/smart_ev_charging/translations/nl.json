@@ -31,7 +31,7 @@
       "invalid_control": "Selecteer drie verschillende scripts en een sensor voor verbonden voertuig."
     },
     "step": {
-      "init": {
+      "providers": {
         "data": {
           "price_entity": "Elektriciteitsprijs-entiteit",
           "charger_status_entity": "Laadpaal status-entiteit",
@@ -39,27 +39,27 @@
           "charger_power_entity": "Laadpaal vermogen-entiteit",
           "charger_current_entity": "Laadstroom-entiteit",
           "charger_session_energy_entity": "Sessie-energie-entiteit",
-          "charger_control_enabled": "Laadpaalbediening ingeschakeld",
-          "charger_start_entity": "Startscript",
-          "charger_stop_entity": "Stopscript",
-          "charger_limit_entity": "Stroomlimietscript",
-          "charger_phases": "Aantal laadfasen"
+          "charger_control_enabled": "Laadpaal automatisch bedienen",
+          "charger_start_entity": "Script: laden starten of hervatten",
+          "charger_stop_entity": "Script: laden pauzeren",
+          "charger_limit_entity": "Script: laadstroom instellen",
+          "charger_phases": "Aantal actieve laadfasen"
         },
         "data_description": {
           "price_entity": "Selecteer een sensor met een prices-attribuut. Kies bij Frank Energie de huidige all-in elektriciteitsprijssensor.",
           "charger_status_entity": "Optionele Easee/Home Assistant sensor met de laadpaalstatus.",
-          "charger_connected_entity": "Optionele binary_sensor die aangeeft of een auto is aangesloten.",
+          "charger_connected_entity": "Vereist bij automatische bediening. Kies een binaire sensor die Aan is als de auto aangesloten is, ook tijdens pauzeren.",
           "charger_power_entity": "Optionele sensor voor het actuele laadvermogen; W en kW worden ondersteund.",
           "charger_current_entity": "Optionele sensor voor de actuele laadstroom; A en mA worden ondersteund.",
           "charger_session_energy_entity": "Optionele sensor voor energie in de huidige laadsessie; Wh, kWh en MWh worden ondersteund.",
-          "charger_control_enabled": "Standaard uit. Vereist geldige SOC en verbonden voertuig.",
+          "charger_control_enabled": "Vereist geldige SOC, aangesloten auto en drie scripts. Pauzeer eerst voor uitschakelen: uitgeschakeld wordt ook geen stopopdracht verstuurd.",
           "charger_start_entity": "Script dat laden start of hervat.",
           "charger_stop_entity": "Script dat laden pauzeert of stopt.",
           "charger_limit_entity": "Script met invoerveld current (ampère).",
           "charger_phases": "Werkelijk aantal actieve fasen, 1 of 3; 230 V per fase."
         },
-        "description": "Configureer prijsbron, laadpaaldata en optionele beveiligde bediening.",
-        "title": "Prijsbron en laadpaal"
+        "description": "Selecteer de prijsbron, laadpaalsensoren en drie bedieningsscripts. Bediening staat standaard uit.",
+        "title": "Prijsbron en laadpaalbediening"
       }
     }
   },
@@ -179,6 +179,30 @@
       },
       "charger_session_energy": {
         "name": "Sessie-energie"
+      },
+      "charger_control_status": {
+        "name": "Laadbediening",
+        "state": {
+          "disabled": "Bediening uit — er worden geen opdrachten verstuurd",
+          "vehicle_data_unavailable": "SOC-gegevens ontbreken",
+          "invalid_target_soc": "Ongeldige gewenste SOC",
+          "target_reached": "Gewenste SOC bereikt",
+          "vehicle_disconnected": "Auto niet aangesloten",
+          "connection_unavailable": "Onbekend of auto aangesloten is",
+          "control_script_unavailable": "Bedieningsscript ontbreekt of is niet beschikbaar",
+          "charger_data_unavailable": "Laadpaalgegevens ontbreken of zijn ongeldig",
+          "off": "Laadmodus staat uit",
+          "departure_not_set": "Vertrektijd niet ingesteld",
+          "price_source_not_configured": "Prijsbron niet ingesteld",
+          "waiting_for_price_data": "Wachten op volledige prijsgegevens",
+          "waiting_for_smart_slot": "Wachten op goedkoop laadmoment",
+          "waiting_for_latest_start": "Wachten tot uiterste starttijd",
+          "power_below_minimum": "Gevraagd vermogen te laag om te laden",
+          "charging": "Laadpaal meldt dat de auto laadt",
+          "charging_requested": "Laden aangevraagd — wachten op bevestiging laadpaal",
+          "command_failed": "Opdracht aan laadpaal mislukt",
+          "stop_failed": "Stopopdracht mislukt — controleer laadpaal"
+        }
       }
     }
   },

@@ -21,6 +21,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import SmartEVChargingConfigEntry
 from .const import CHARGING_STATUSES
+from .charger_control import CONTROL_STATUSES
 from .coordinator import SmartEVChargingRuntime
 from .entity import SmartEVChargingEntity
 
@@ -39,6 +40,7 @@ async def async_setup_entry(
         SmartEVRequiredChargeTimeSensor(runtime),
         SmartEVLatestStartSensor(runtime),
         SmartEVStatusSensor(runtime),
+        SmartEVControlStatusSensor(runtime),
         SmartEVRequestedPowerSensor(runtime),
         SmartEVCurrentChargeStartSensor(runtime),
         SmartEVCurrentChargeEndSensor(runtime),
@@ -448,3 +450,29 @@ class SmartEVChargerSessionEnergySensor(SmartEVChargingEntity, SensorEntity):
     def native_value(self) -> float | None:
         value = self.runtime.charger_session_energy_kwh
         return None if value is None else round(value, 3)
+
+
+class SmartEVControlStatusSensor(SmartEVChargingEntity, SensorEntity):
+    """Explain the control gate independently of the charging strategy."""
+
+    _attr_translation_key = "charger_control_status"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(CONTROL_STATUSES)
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_control_status")
+
+    @property
+    def native_value(self) -> str:
+        return self.runtime.control.status
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        control = self.runtime.control
+        return {
+            "strategy_status": self.runtime.status,
+            "requested_power_w": self.runtime.requested_power_w,
+            "applied_current_a": control.current,
+            "session_owned": control.owned,
+            "next_charge_start": self.runtime.next_charge_start,
+        }

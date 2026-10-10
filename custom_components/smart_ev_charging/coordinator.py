@@ -144,6 +144,10 @@ class SmartEVChargingRuntime:
     @callback
     def _notify(self) -> None:
         self.control.schedule()
+        self._notify_listeners()
+
+    @callback
+    def _notify_listeners(self) -> None:
         for listener in tuple(self._listeners):
             listener()
 

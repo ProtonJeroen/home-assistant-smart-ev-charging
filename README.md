@@ -12,11 +12,15 @@ The integration is designed around interchangeable providers:
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.6.0
+## Current scope — v0.6.1
 
 Version 0.5 adds opt-in charger control, disabled by default.
 
 Version 0.6 adds **Cheapest hours within 24 hours**, without a departure time.
+
+Version 0.6.1 adds a translated **Charger control** sensor explaining control
+blocks and failures separately from the planner status, and refreshes the
+provider/control configuration form with full English and Dutch labels.
 
 It supports:
 
@@ -198,6 +202,42 @@ These telemetry entities remain read-only; optional control is configured separa
 For the current Easee dashboard shown during development, the most useful first mappings are the entities behind **Status**, **Vermogen** and **Sessie energie**. Current and connected-state sources are optional and can be added when suitable entities are available.
 
 ## Guarded charger control (0.5.0)
+
+### Control explanations and translated configuration (0.6.1)
+
+The **Charger control** sensor (**Laadbediening** in Dutch) explains why the
+controller is requesting charging, waiting, or blocked. Examples include:
+
+- waiting for a cheap charging slot or complete price data;
+- vehicle SOC unavailable, vehicle disconnected, or connection unknown;
+- missing control script or invalid charger telemetry;
+- target SOC reached, charging mode off, or control disabled;
+- command failure or failed stop request requiring a charger check.
+
+**Charging requested** means the decision layer allows charging; it does not
+confirm that the car is receiving power. **Charger reports charging** requires
+the configured charger-status source to report `charging`. Other integrations
+using different status values remain at requested; actual power is shown by
+the existing power sensor. The explanation is a separate sensor so the existing
+planner **Status** and its automation values remain unchanged.
+
+Attributes include the strategy status, requested power, last acknowledged
+current limit, runtime ownership and next scheduled start. An acknowledged
+current limit is not a measured current. Command failures are published after
+service completion and cleared on the next successful control evaluation.
+
+After updating, restart Home Assistant and reopen **Configure**. The form is
+now **Price source and charger control** / **Prijsbron en laadpaalbediening**,
+with labels for start, pause and current-limit scripts and active phases.
+Translations ship in `translations/en.json` and `translations/nl.json`.
+If the browser still displays old text, reload the page fully; check that the
+complete integration directory, including both translation files, was updated.
+
+Existing script and sensor selections are retained. The new sensor is created
+automatically; add it to a dashboard if desired. Disabled control still sends
+no commands, including no stop request: this release does not change that gate.
+
+### Configure control
 
 In **Configure**, select three distinct existing `script` entities: start/resume,
 stop/pause, and current limit. The current script must accept `current` in amperes.
