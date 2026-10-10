@@ -1,5 +1,7 @@
 # Smart EV Charging for Home Assistant
 
+<img src="custom_components/smart_ev_charging/brand/icon.png" alt="Smart EV Charging logo" width="96" height="96">
+
 Smart EV Charging is a custom Home Assistant integration for planning EV charging around dynamic energy prices, departure deadlines, charger limits and learned battery behaviour.
 
 ## Project goals
@@ -12,7 +14,7 @@ The integration is designed around interchangeable providers:
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.6.1
+## Current scope — v0.6.2
 
 Version 0.5 adds opt-in charger control, disabled by default.
 
@@ -21,6 +23,16 @@ Version 0.6 adds **Cheapest hours within 24 hours**, without a departure time.
 Version 0.6.1 adds a translated **Charger control** sensor explaining control
 blocks and failures separately from the planner status, and refreshes the
 provider/control configuration form with full English and Dutch labels.
+
+Version 0.6.2 includes the Smart EV Charging icon and logo in the integration's
+`brand/` directory, at 256 px and 512 px for high-resolution displays. The design
+matches the blue/green Home Energy Manager branding, with an EV and charger.
+Home Assistant 2026.3 or newer loads these local images automatically; this
+repository already requires Home Assistant 2026.9 or newer through HACS.
+After updating the complete integration, restart Home Assistant and refresh
+the browser/app if an older icon remains cached. No dashboard YAML or separate
+image download is needed for the integration icon. This does not replace the
+individual sensor icons or install a custom dashboard card.
 
 It supports:
 
