@@ -21,6 +21,14 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "must_charge_now": {
+        "name": "Must charge now"
+      },
+      "preferred_charge_now": {
+        "name": "Preferred charge now"
+      }
+    },
     "datetime": {
       "departure": {
         "name": "Departure"
@@ -33,8 +41,22 @@
       "charge_power": {
         "name": "Charge power"
       },
+      "safety_margin": {
+        "name": "Safety margin"
+      },
       "target_soc": {
         "name": "Target SOC"
+      }
+    },
+    "select": {
+      "charging_mode": {
+        "name": "Charging mode",
+        "state": {
+          "charge_now": "Charge now",
+          "off": "Off",
+          "ready_by_departure": "Ready by departure",
+          "smart": "Smart charge"
+        }
       }
     },
     "sensor": {
@@ -44,6 +66,9 @@
       "latest_start": {
         "name": "Latest start"
       },
+      "requested_power": {
+        "name": "Requested power"
+      },
       "required_battery_energy": {
         "name": "Required battery energy"
       },
@@ -52,6 +77,19 @@
       },
       "required_grid_energy": {
         "name": "Required grid energy"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "charge_now": "Charge now",
+          "departure_not_set": "Departure not set",
+          "must_charge_deadline": "Must charge - deadline",
+          "off": "Off",
+          "target_reached": "Target reached",
+          "vehicle_data_unavailable": "Vehicle data unavailable",
+          "waiting_for_latest_start": "Waiting for latest start",
+          "waiting_for_price_data": "Waiting for price data"
+        }
       }
     }
   },
