@@ -16,6 +16,7 @@ async def _async_config_entry_updated(
 ) -> None:
     """Reload when externally tracked source entities change."""
     runtime = entry.runtime_data
+    runtime.control.schedule()
     if runtime.configured_external_entity_ids != runtime.tracked_external_entity_ids:
         await hass.config_entries.async_reload(entry.entry_id)
 

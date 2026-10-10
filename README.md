@@ -8,13 +8,13 @@ The integration is designed around interchangeable providers:
 
 - **Vehicle data** — initially a generic Home Assistant SOC entity, later WiCAN Pro and other vehicle sources.
 - **Energy prices** — a generic Home Assistant price entity; Frank Energie is the first tested provider.
-- **Charger control** — planned for a later release, with Easee as the first charger adapter.
+- **Charger control** — optional guarded control through selected Home Assistant scripts, with Easee as the first example.
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.4.0
+## Current scope — v0.5.0
 
-Version 0.4 is deliberately safe and does **not** control the charger.
+Version 0.5 adds opt-in charger control, disabled by default.
 
 It supports:
 
@@ -97,7 +97,7 @@ The Home Energy Manager decides **how much power is available**.
 
 ## Safety
 
-Smart EV Charging currently produces calculation, planning and power-request signals only. It does not start, stop or change the current limit of a real charger yet.
+Charger control is disabled by default. Read the guarded control section before enabling it.
 
 ## Status
 
@@ -161,6 +161,64 @@ The integration normalizes:
 - current to A;
 - session energy to kWh.
 
-These values are read-only. Version 0.4 still cannot start or stop Easee and cannot change its current limit.
+These telemetry entities remain read-only; optional control is configured separately below.
 
 For the current Easee dashboard shown during development, the most useful first mappings are the entities behind **Status**, **Vermogen** and **Sessie energie**. Current and connected-state sources are optional and can be added when suitable entities are available.
+
+## Guarded charger control (0.5.0)
+
+In **Configure**, select three distinct existing `script` entities: start/resume,
+stop/pause, and current limit. The current script must accept `current` in amperes.
+Also select a **Vehicle connected** binary sensor and the actual number of active
+charging phases (1 or 3). Then explicitly enable **Charger control enabled**.
+No charger brand is imported or discovered by the integration.
+
+Layer 1 uses `preferred_charge_now OR must_charge_now` and positive
+`requested_power` from the existing decision layer. Layer 2 sets the limit before
+starting: `floor(requested_power / (230 V * phases))`, capped at 16 A. A request
+below 6 A pauses an owned session rather than rounding up and exceeding power.
+The phase setting must match actual charging; automatic phase switching is not
+supported. This is nominal-voltage scheduling, not household load balancing.
+Existing charger/circuit protections remain responsible for electrical safety.
+
+Missing, non-finite, out-of-range SOC/target, disconnected/unknown vehicle state,
+missing control scripts/services, or invalid selected charger telemetry block
+start/current commands. Target reached, no charging demand or invalid inputs
+pause a session previously started by this runtime. A manually started session
+is never stopped when this runtime has not taken ownership. A start failure
+triggers a best-effort stop because the command may have reached the charger.
+Failures are logged and retried on a later source update or minute tick.
+Commands run serially and unchanged requests are deduplicated. Inputs are checked
+again after setting current before starting.
+
+**Disabling control is an absolute no-command gate**, including stop commands.
+Pause first if needed, then disable. Unloading/restarting Home Assistant cancels
+pending work and forgets session ownership; it cannot guarantee a physical stop
+when Home Assistant, the network, or Easee Cloud is unavailable. Changing tracked
+telemetry selections reloads the integration and also resets ownership.
+Configure charger-side safeguards separately. Do not run competing charging
+automations or Easee schedules alongside this controller. Selected scripts must
+be short, synchronous service wrappers without delays, queues or
+`continue_on_error`. Service completion acknowledges a request, not physical
+charging; check actual charger telemetry during commissioning.
+
+### Easee setup
+
+The maintained [Easee integration services](https://github.com/nordicopen/easee_hass/blob/master/custom_components/easee/services.yaml)
+provide `easee.action_command` (`resume` / `pause`) and
+`easee.set_charger_dynamic_limit` (`current`, optional `time_to_live`).
+The current upstream integration has no native number platform for this limit.
+Home Assistant [script actions](https://www.home-assistant.io/integrations/script/)
+let us select existing services without hard-coding charger-specific fields.
+
+Copy `docs/easee-control-scripts.yaml` into `scripts.yaml`, replace the device ID,
+reload scripts, and select these three script entities in Configure. Use a real
+connected binary sensor, or a template derived from your verified Easee status
+values that becomes unavailable when its source is unavailable. Do not treat
+unknown status as connected. Keep control disabled until mappings are verified.
+
+Tests use an Easee-named script adapter with mocked Home Assistant services;
+no real Easee charger or live Home Assistant instance was available for hardware
+validation. Run `python -m unittest discover -s tests -v` for control contracts.
+For commissioning, observe a low-current start, waiting-slot pause, deadline
+start, SOC loss, disconnected vehicle and target reached, then disable control.
