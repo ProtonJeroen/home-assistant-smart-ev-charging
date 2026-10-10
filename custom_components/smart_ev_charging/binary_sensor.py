@@ -16,12 +16,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up Smart EV Charging binary sensors."""
     runtime = entry.runtime_data
-    async_add_entities(
-        [
-            SmartEVPreferredChargeNowBinarySensor(runtime),
-            SmartEVMustChargeNowBinarySensor(runtime),
-        ]
-    )
+    entities: list[BinarySensorEntity] = [
+        SmartEVPreferredChargeNowBinarySensor(runtime),
+        SmartEVMustChargeNowBinarySensor(runtime),
+    ]
+    if runtime.charger_connected_entity_id:
+        entities.append(SmartEVChargerConnectedBinarySensor(runtime))
+
+    async_add_entities(entities)
 
 
 class SmartEVPreferredChargeNowBinarySensor(
@@ -50,3 +52,22 @@ class SmartEVMustChargeNowBinarySensor(SmartEVChargingEntity, BinarySensorEntity
     @property
     def is_on(self) -> bool:
         return self.runtime.must_charge_now
+
+
+class SmartEVChargerConnectedBinarySensor(
+    SmartEVChargingEntity, BinarySensorEntity
+):
+    """Read-only charger/vehicle connected state."""
+
+    _attr_translation_key = "charger_connected"
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charger_connected")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.charger_connected is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.runtime.charger_connected
