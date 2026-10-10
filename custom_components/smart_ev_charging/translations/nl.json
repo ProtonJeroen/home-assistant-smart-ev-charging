@@ -21,6 +21,14 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "must_charge_now": {
+        "name": "Moet nu laden"
+      },
+      "preferred_charge_now": {
+        "name": "Bij voorkeur nu laden"
+      }
+    },
     "datetime": {
       "departure": {
         "name": "Vertrektijd"
@@ -33,8 +41,22 @@
       "charge_power": {
         "name": "Laadvermogen"
       },
+      "safety_margin": {
+        "name": "Veiligheidsmarge"
+      },
       "target_soc": {
         "name": "Gewenste SOC"
+      }
+    },
+    "select": {
+      "charging_mode": {
+        "name": "Laadmodus",
+        "state": {
+          "charge_now": "Nu laden",
+          "off": "Uit",
+          "ready_by_departure": "Klaar voor vertrek",
+          "smart": "Slim laden"
+        }
       }
     },
     "sensor": {
@@ -44,6 +66,9 @@
       "latest_start": {
         "name": "Uiterste starttijd"
       },
+      "requested_power": {
+        "name": "Aangevraagd vermogen"
+      },
       "required_battery_energy": {
         "name": "Benodigde accu-energie"
       },
@@ -52,6 +77,19 @@
       },
       "required_grid_energy": {
         "name": "Benodigde netenergie"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "charge_now": "Nu laden",
+          "departure_not_set": "Vertrektijd niet ingesteld",
+          "must_charge_deadline": "Moet laden - deadline",
+          "off": "Uit",
+          "target_reached": "Doel bereikt",
+          "vehicle_data_unavailable": "Voertuigdata niet beschikbaar",
+          "waiting_for_latest_start": "Wachten op uiterste starttijd",
+          "waiting_for_price_data": "Wachten op prijsdata"
+        }
       }
     }
   },
