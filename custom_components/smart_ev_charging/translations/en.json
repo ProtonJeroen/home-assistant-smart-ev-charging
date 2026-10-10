@@ -3,20 +3,42 @@
     "abort": {
       "already_configured": "This SOC entity is already configured."
     },
+    "error": {
+      "invalid_price_entity": "The selected entity does not expose a supported prices attribute."
+    },
     "step": {
       "user": {
         "data": {
           "battery_capacity_kwh": "Nominal usable battery capacity",
           "name": "Vehicle name",
+          "price_entity": "Electricity price entity",
           "soc_entity": "SOC entity"
         },
         "data_description": {
           "battery_capacity_kwh": "Enter the initial usable battery capacity in kWh. Battery learning will be able to refine this later.",
           "name": "A friendly name for this vehicle.",
+          "price_entity": "Optional price source with a prices attribute containing from, till and price values. Frank Energie's all-in electricity price sensor is supported.",
           "soc_entity": "Select the Home Assistant entity that reports the vehicle state of charge in percent."
         },
         "description": "Configure the vehicle data used by Smart EV Charging.",
         "title": "Set up vehicle"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_price_entity": "The selected entity does not expose a supported prices attribute."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "price_entity": "Electricity price entity"
+        },
+        "data_description": {
+          "price_entity": "Select a sensor with a prices attribute. For Frank Energie, choose the current all-in electricity price sensor."
+        },
+        "description": "Configure the dynamic electricity-price source used by Smart charge.",
+        "title": "Electricity price source"
       }
     }
   },
@@ -60,11 +82,20 @@
       }
     },
     "sensor": {
+      "average_charge_price": {
+        "name": "Average charge price"
+      },
       "current_soc": {
         "name": "Current SOC"
       },
+      "estimated_charge_cost": {
+        "name": "Estimated charge cost"
+      },
       "latest_start": {
         "name": "Latest start"
+      },
+      "next_charge_start": {
+        "name": "Next charge start"
       },
       "requested_power": {
         "name": "Requested power"
@@ -85,10 +116,13 @@
           "departure_not_set": "Departure not set",
           "must_charge_deadline": "Must charge - deadline",
           "off": "Off",
+          "price_source_not_configured": "Price source not configured",
+          "smart_charge_slot": "Smart charge slot",
           "target_reached": "Target reached",
           "vehicle_data_unavailable": "Vehicle data unavailable",
           "waiting_for_latest_start": "Waiting for latest start",
-          "waiting_for_price_data": "Waiting for price data"
+          "waiting_for_price_data": "Waiting for price data",
+          "waiting_for_smart_slot": "Waiting for smart charge slot"
         }
       }
     }
