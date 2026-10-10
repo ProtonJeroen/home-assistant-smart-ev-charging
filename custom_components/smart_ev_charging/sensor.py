@@ -1,13 +1,20 @@
 """Calculated sensors for Smart EV Charging."""
 
 from datetime import datetime
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower, UnitOfTime
+from homeassistant.const import (
+    CURRENCY_EURO,
+    PERCENTAGE,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -33,6 +40,9 @@ async def async_setup_entry(
             SmartEVLatestStartSensor(runtime),
             SmartEVStatusSensor(runtime),
             SmartEVRequestedPowerSensor(runtime),
+            SmartEVNextChargeStartSensor(runtime),
+            SmartEVEstimatedChargeCostSensor(runtime),
+            SmartEVAverageChargePriceSensor(runtime),
         ]
     )
 
@@ -169,3 +179,69 @@ class SmartEVRequestedPowerSensor(SmartEVChargingEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         return self.runtime.requested_power_w
+
+
+class SmartEVNextChargeStartSensor(SmartEVChargingEntity, SensorEntity):
+    """Next selected smart-charge interval."""
+
+    _attr_translation_key = "next_charge_start"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "next_charge_start")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.next_charge_start is not None
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.runtime.next_charge_start
+
+
+class SmartEVEstimatedChargeCostSensor(SmartEVChargingEntity, SensorEntity):
+    """Estimated electricity cost of the selected smart plan."""
+
+    _attr_translation_key = "estimated_charge_cost"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = CURRENCY_EURO
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "estimated_charge_cost")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.estimated_charge_cost is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.estimated_charge_cost
+        return None if value is None else round(value, 3)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self.runtime.plan_attributes
+
+
+class SmartEVAverageChargePriceSensor(SmartEVChargingEntity, SensorEntity):
+    """Energy-weighted average electricity price of the selected plan."""
+
+    _attr_translation_key = "average_charge_price"
+    _attr_native_unit_of_measurement = (
+        f"{CURRENCY_EURO}/{UnitOfEnergy.KILO_WATT_HOUR}"
+    )
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "average_charge_price")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.average_charge_price is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.average_charge_price
+        return None if value is None else round(value, 5)

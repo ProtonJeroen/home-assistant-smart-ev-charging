@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,3 +24,36 @@ class ChargingEstimate:
     battery_energy_kwh: float
     grid_energy_kwh: float
     duration_minutes: float
+
+
+@dataclass(frozen=True, slots=True)
+class PriceSlot:
+    """One energy-price interval."""
+
+    start: datetime
+    end: datetime
+    price: float
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedChargeSlot:
+    """A selected part of a price slot used by the charging plan."""
+
+    start: datetime
+    end: datetime
+    price: float
+    minutes: float
+    energy_kwh: float
+    cost: float
+
+
+@dataclass(frozen=True, slots=True)
+class ChargingPlan:
+    """Price-optimized charge plan."""
+
+    slots: tuple[PlannedChargeSlot, ...]
+    required_minutes: float
+    planned_minutes: float
+    estimated_cost: float
+    average_price: float | None
+    coverage_complete: bool
