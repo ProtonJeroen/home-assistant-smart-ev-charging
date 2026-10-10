@@ -7,11 +7,12 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfTime
+from homeassistant.const import PERCENTAGE, UnitOfEnergy, UnitOfPower, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import SmartEVChargingConfigEntry
+from .const import CHARGING_STATUSES
 from .coordinator import SmartEVChargingRuntime
 from .entity import SmartEVChargingEntity
 
@@ -30,6 +31,8 @@ async def async_setup_entry(
             SmartEVRequiredGridEnergySensor(runtime),
             SmartEVRequiredChargeTimeSensor(runtime),
             SmartEVLatestStartSensor(runtime),
+            SmartEVStatusSensor(runtime),
+            SmartEVRequestedPowerSensor(runtime),
         ]
     )
 
@@ -135,3 +138,34 @@ class SmartEVLatestStartSensor(SmartEVChargingEntity, SensorEntity):
     @property
     def native_value(self) -> datetime | None:
         return self.runtime.latest_start
+
+
+class SmartEVStatusSensor(SmartEVChargingEntity, SensorEntity):
+    """Human-readable charging strategy status."""
+
+    _attr_translation_key = "status"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = CHARGING_STATUSES
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "status")
+
+    @property
+    def native_value(self) -> str:
+        return self.runtime.status
+
+
+class SmartEVRequestedPowerSensor(SmartEVChargingEntity, SensorEntity):
+    """Power requested from the Home Energy Manager."""
+
+    _attr_translation_key = "requested_power"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "requested_power")
+
+    @property
+    def native_value(self) -> int:
+        return self.runtime.requested_power_w
