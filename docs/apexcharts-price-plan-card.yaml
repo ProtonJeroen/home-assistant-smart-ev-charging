@@ -1,0 +1,48 @@
+# Replace the entity below with the Price and charge chart entity created
+# by Smart EV Charging, for example:
+# sensor.hyundai_ioniq_28kwh_prijs_en_laadgrafiek
+#
+# Requires the HACS ApexCharts Card.
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Stroomprijs en laadplan
+graph_span: 36h
+span:
+  start: hour
+now:
+  show: true
+  label: Nu
+apex_config:
+  chart:
+    stacked: true
+  plotOptions:
+    bar:
+      columnWidth: 95%
+  yaxis:
+    title:
+      text: "€/kWh"
+series:
+  - entity: sensor.REPLACE_ME_price_chart
+    name: Prijs
+    type: column
+    color: "#F2C94C"
+    float_precision: 3
+    data_generator: |
+      const bars = entity.attributes.bars || [];
+      return bars.map((bar) => [
+        new Date(bar.midpoint).getTime(),
+        bar.charging ? null : bar.price
+      ]);
+  - entity: sensor.REPLACE_ME_price_chart
+    name: Gepland laden
+    type: column
+    color: "#27AE60"
+    float_precision: 3
+    data_generator: |
+      const bars = entity.attributes.bars || [];
+      return bars.map((bar) => [
+        new Date(bar.midpoint).getTime(),
+        bar.charging ? bar.price : null
+      ]);
