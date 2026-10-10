@@ -7,6 +7,15 @@ import math
 
 _LOGGER = logging.getLogger(__name__)
 
+CONTROL_STATUSES = (
+    "disabled", "vehicle_data_unavailable", "invalid_target_soc", "target_reached",
+    "vehicle_disconnected", "connection_unavailable", "control_script_unavailable",
+    "charger_data_unavailable", "off", "departure_not_set",
+    "price_source_not_configured", "waiting_for_price_data",
+    "waiting_for_smart_slot", "waiting_for_latest_start", "power_below_minimum",
+    "charging", "charging_requested", "command_failed", "stop_failed",
+)
+
 
 def requested_current(power: float, phases: int) -> int | None:
     """Never exceed requested power; below the IEC minimum means no charging."""
@@ -28,6 +37,7 @@ class ChargerControl:
         self.current = None
         self.stop_entity = None
         self.binding = None
+        self.command_error = None
 
     def cancel(self):
         """Prevent pending work from issuing commands after unload."""
@@ -45,41 +55,64 @@ class ChargerControl:
     def _configuration(self):
         return dict(self.runtime.entry.options)
 
-    def _desired(self, options):
+    def _decision(self, options):
+        """Return both the permitted current and its user-facing reason."""
         r = self.runtime
         if options.get("charger_control_enabled") is not True:
-            return None
+            return None, "disabled"
         soc = r.current_soc
         target = r.target_soc
-        if (soc is None or not math.isfinite(soc) or not 0 <= soc <= 100
-                or not math.isfinite(target) or not 0 <= target <= 100
-                or soc >= target or r.charger_connected is not True):
-            return None
+        if soc is None or not math.isfinite(soc) or not 0 <= soc <= 100:
+            return None, "vehicle_data_unavailable"
+        if not math.isfinite(target) or not 0 <= target <= 100:
+            return None, "invalid_target_soc"
+        if soc >= target:
+            return None, "target_reached"
+        if r.charger_connected is not True:
+            return None, ("vehicle_disconnected" if r.charger_connected is False
+                          else "connection_unavailable")
         for key in ("charger_start_entity", "charger_stop_entity", "charger_limit_entity"):
             entity = options.get(key)
             if not entity or not entity.startswith("script."):
-                return None
+                return None, "control_script_unavailable"
             state = r.hass.states.get(entity)
             if state is None or state.state not in ("on", "off"):
-                return None
+                return None, "control_script_unavailable"
             if not r.hass.services.has_service("script", entity.split(".", 1)[1]):
-                return None
+                return None, "control_script_unavailable"
         for key in ("charger_status_entity", "charger_power_entity", "charger_current_entity", "charger_session_energy_entity"):
             entity = options.get(key)
             if entity:
                 state = r.hass.states.get(entity)
                 if state is None or state.state in ("unknown", "unavailable"):
-                    return None
+                    return None, "charger_data_unavailable"
                 if key != "charger_status_entity":
                     try:
                         value = float(state.state)
                     except (TypeError, ValueError):
-                        return None
+                        return None, "charger_data_unavailable"
                     if not math.isfinite(value) or value < 0:
-                        return None
+                        return None, "charger_data_unavailable"
         if not (r.preferred_charge_now or r.must_charge_now):
-            return None
-        return requested_current(r.requested_power_w, options.get("charger_phases", 1))
+            reason = getattr(r, "status", "waiting_for_smart_slot")
+            return None, reason if reason in CONTROL_STATUSES else "waiting_for_smart_slot"
+        current = requested_current(r.requested_power_w, options.get("charger_phases", 1))
+        return current, "charging_requested" if current is not None else "power_below_minimum"
+
+    def _desired(self, options):
+        return self._decision(options)[0]
+
+    @property
+    def status(self):
+        """Separate a charging request from charger-reported charging."""
+        _, reason = self._decision(self._configuration())
+        if reason == "disabled":
+            return reason
+        if self.command_error:
+            return self.command_error
+        if reason == "charging_requested" and getattr(self.runtime, "charger_status", None) == "charging":
+            return "charging"
+        return reason
 
     async def _call(self, entity, data=None):
         domain, service = entity.split(".", 1)
@@ -97,6 +130,7 @@ class ChargerControl:
         while self.dirty and not self.closed:
             self.dirty = False
             try:
+                self.command_error = None
                 options = self._configuration()
                 current = self._desired(options)
                 if current is None:
@@ -132,12 +166,19 @@ class ChargerControl:
             except asyncio.CancelledError:
                 raise
             except Exception:
+                self.command_error = "command_failed"
                 _LOGGER.exception("Charger control failed; no further start/current command this cycle")
                 self.current = None
                 if self._configuration().get("charger_control_enabled") is True:
                     try:
                         await self._stop()
                     except Exception:
+                        self.command_error = "stop_failed"
                         _LOGGER.exception("Fail-safe charger stop failed; retry on next update")
                 # Avoid an immediate retry loop caused by script state changes.
                 self.dirty = False
+            finally:
+                # Publish completion/errors without scheduling another command cycle.
+                notify = getattr(self.runtime, "_notify_listeners", None)
+                if notify is not None:
+                    notify()

@@ -9,6 +9,7 @@ import probatio
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -60,8 +61,10 @@ STEP_USER_DATA_SCHEMA = probatio.Schema(
 
 PROVIDER_OPTIONS_SCHEMA = probatio.Schema(
     {
-        probatio.Optional(CONF_CHARGER_CONTROL_ENABLED, default=False): bool,
-        probatio.Optional(CONF_CHARGER_PHASES, default=1): probatio.In([1, 3]),
+        probatio.Optional(CONF_CHARGER_CONTROL_ENABLED, default=False): BooleanSelector(),
+        probatio.Optional(CONF_CHARGER_PHASES, default=1): NumberSelector(
+            NumberSelectorConfig(min=1, max=3, step=2, mode=NumberSelectorMode.BOX)
+        ),
         **{probatio.Optional(key): EntitySelector(EntitySelectorConfig(domain=["script"])) for key in CONTROL_ENTITY_KEYS},
         probatio.Optional(CONF_PRICE_ENTITY): EntitySelector(
             EntitySelectorConfig(domain=["sensor"])
@@ -142,7 +145,13 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Configure optional price and read-only charger sources."""
+        """Open the translated provider and charger configuration form."""
+        return await self.async_step_providers(user_input)
+
+    async def async_step_providers(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Configure sources and opt-in charger control."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -151,6 +160,7 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
                 errors[CONF_PRICE_ENTITY] = "invalid_price_entity"
             elif user_input.get(CONF_CHARGER_CONTROL_ENABLED) and (
                 not user_input.get(CONF_CHARGER_CONNECTED_ENTITY)
+                or user_input.get(CONF_CHARGER_PHASES, 1) not in (1, 3)
                 or any(not user_input.get(key) or self.hass.states.get(user_input[key]) is None for key in CONTROL_ENTITY_KEYS)
                 or len({user_input.get(key) for key in CONTROL_ENTITY_KEYS}) != 3
             ):
@@ -184,7 +194,7 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
                 suggested[key] = value
 
         return self.async_show_form(
-            step_id="init",
+            step_id="providers",
             data_schema=self.add_suggested_values_to_schema(
                 PROVIDER_OPTIONS_SCHEMA, suggested
             ),

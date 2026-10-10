@@ -31,7 +31,7 @@
       "invalid_control": "Select three distinct scripts and a vehicle connected sensor."
     },
     "step": {
-      "init": {
+      "providers": {
         "data": {
           "price_entity": "Electricity price entity",
           "charger_status_entity": "Charger status entity",
@@ -39,27 +39,27 @@
           "charger_power_entity": "Charger power entity",
           "charger_current_entity": "Charger current entity",
           "charger_session_energy_entity": "Session energy entity",
-          "charger_control_enabled": "Charger control enabled",
-          "charger_start_entity": "Start script",
-          "charger_stop_entity": "Stop script",
-          "charger_limit_entity": "Current limit script",
-          "charger_phases": "Charging phases"
+          "charger_control_enabled": "Automatically control the charger",
+          "charger_start_entity": "Script: start or resume charging",
+          "charger_stop_entity": "Script: pause charging",
+          "charger_limit_entity": "Script: set charging current",
+          "charger_phases": "Number of active charging phases"
         },
         "data_description": {
           "price_entity": "Select a sensor with a prices attribute. For Frank Energie, choose the current all-in electricity price sensor.",
           "charger_status_entity": "Optional Easee/Home Assistant sensor containing charger status.",
-          "charger_connected_entity": "Optional binary_sensor indicating whether a vehicle is connected.",
+          "charger_connected_entity": "Required for automatic control. Select a binary sensor that is on when the vehicle is connected, including while paused.",
           "charger_power_entity": "Optional sensor for actual charger power; W and kW are supported.",
           "charger_current_entity": "Optional sensor for actual charger current; A and mA are supported.",
           "charger_session_energy_entity": "Optional sensor for energy in the current charging session; Wh, kWh and MWh are supported.",
-          "charger_control_enabled": "Off by default. Requires valid SOC and a connected vehicle.",
+          "charger_control_enabled": "Requires valid SOC, a connected vehicle and three scripts. Pause before disabling: disabled control sends no stop command either.",
           "charger_start_entity": "Script that starts or resumes charging.",
           "charger_stop_entity": "Script that pauses or stops charging.",
           "charger_limit_entity": "Script accepting a current variable in amperes.",
           "charger_phases": "Actual active phases, 1 or 3; 230 V per phase."
         },
-        "description": "Configure price sources, charger data and optional guarded control.",
-        "title": "Price source and charger"
+        "description": "Select the price source, charger sensors and three control scripts. Control is off by default.",
+        "title": "Price source and charger control"
       }
     }
   },
@@ -179,6 +179,30 @@
       },
       "charger_session_energy": {
         "name": "Session energy"
+      },
+      "charger_control_status": {
+        "name": "Charger control",
+        "state": {
+          "disabled": "Control disabled — no commands sent",
+          "vehicle_data_unavailable": "Vehicle SOC data unavailable",
+          "invalid_target_soc": "Invalid target SOC",
+          "target_reached": "Target SOC reached",
+          "vehicle_disconnected": "Vehicle not connected",
+          "connection_unavailable": "Vehicle connection unknown",
+          "control_script_unavailable": "Control script missing or unavailable",
+          "charger_data_unavailable": "Charger data unavailable or invalid",
+          "off": "Charging mode off",
+          "departure_not_set": "Departure time not set",
+          "price_source_not_configured": "Price source not configured",
+          "waiting_for_price_data": "Waiting for complete price data",
+          "waiting_for_smart_slot": "Waiting for a cheap charging slot",
+          "waiting_for_latest_start": "Waiting until latest start",
+          "power_below_minimum": "Requested power below minimum charging current",
+          "charging": "Charger reports charging",
+          "charging_requested": "Charging requested — awaiting charger confirmation",
+          "command_failed": "Charger command failed",
+          "stop_failed": "Charger stop failed — check charger"
+        }
       }
     }
   },

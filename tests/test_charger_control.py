@@ -50,6 +50,7 @@ class ControlTest(unittest.IsolatedAsyncioTestCase):
         self.options['charger_control_enabled'] = False
         await self.run_control()
         self.assertEqual(self.calls, [])
+        self.assertEqual(self.c.status, 'disabled')
 
     async def test_waiting_stops_and_deadline_can_start(self):
         await self.run_control()
@@ -105,6 +106,45 @@ class ControlTest(unittest.IsolatedAsyncioTestCase):
             await self.run_control()
         self.assertEqual(self.calls[-1][1], 'easee_pause')
         self.assertFalse(self.c.owned)
+        self.assertEqual(self.c.status, 'command_failed')
+
+    async def test_status_distinguishes_request_from_charging(self):
+        self.assertEqual(self.c.status, 'charging_requested')
+        self.r.charger_status = 'charging'
+        self.assertEqual(self.c.status, 'charging')
+
+    def test_status_explains_safety_gates(self):
+        for field, value, expected in [
+            ('current_soc', None, 'vehicle_data_unavailable'),
+            ('target_soc', float('nan'), 'invalid_target_soc'),
+            ('current_soc', 80, 'target_reached'),
+            ('charger_connected', None, 'connection_unavailable'),
+            ('charger_connected', False, 'vehicle_disconnected'),
+            ('requested_power_w', 1000, 'power_below_minimum'),
+        ]:
+            old = getattr(self.r, field)
+            setattr(self.r, field, value)
+            self.assertEqual(self.c.status, expected)
+            setattr(self.r, field, old)
+
+    def test_status_explains_strategy_wait(self):
+        self.r.preferred_charge_now = False
+        for reason in ('off', 'waiting_for_smart_slot', 'waiting_for_price_data', 'departure_not_set'):
+            self.r.status = reason
+            self.assertEqual(self.c.status, reason)
+
+    async def test_stop_failure_is_visible_and_completion_notifies(self):
+        await self.run_control()
+        notifications = []
+        self.r._notify_listeners = lambda: notifications.append(self.c.status)
+        async def failed(*args, **kwargs):
+            raise RuntimeError('offline')
+        self.r.hass.services.async_call = failed
+        self.r.current_soc = None
+        with self.assertLogs('control', level='ERROR'):
+            await self.run_control()
+        self.assertEqual(self.c.status, 'stop_failed')
+        self.assertEqual(notifications, ['stop_failed'])
 
     async def test_disabled_owned_session_has_no_commands(self):
         await self.run_control()
