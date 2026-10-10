@@ -38,16 +38,20 @@ CONF_CHARGE_EFFICIENCY = "charge_efficiency"
 CONF_DEPARTURE = "departure"
 CONF_SAFETY_MARGIN_MINUTES = "safety_margin_minutes"
 CONF_CHARGING_MODE = "charging_mode"
+CONF_CHEAP_HOURS = "cheap_hours"
+DEFAULT_CHEAP_HOURS = 4.0
 
 MODE_OFF = "off"
 MODE_CHARGE_NOW = "charge_now"
 MODE_SMART = "smart"
+MODE_SMART_24H = "smart_24h"
 MODE_READY_BY_DEPARTURE = "ready_by_departure"
 
 CHARGING_MODES = [
     MODE_OFF,
     MODE_CHARGE_NOW,
     MODE_SMART,
+    MODE_SMART_24H,
     MODE_READY_BY_DEPARTURE,
 ]
 

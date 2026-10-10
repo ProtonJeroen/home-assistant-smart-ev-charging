@@ -92,6 +92,9 @@
       },
       "target_soc": {
         "name": "Target SOC"
+      },
+      "cheap_hours": {
+        "name": "Cheap charging hours (24 hours)"
       }
     },
     "select": {
@@ -101,7 +104,8 @@
           "charge_now": "Charge now",
           "off": "Off",
           "ready_by_departure": "Ready by departure",
-          "smart": "Smart charge"
+          "smart": "Smart charge",
+          "smart_24h": "Cheapest hours within 24 hours"
         }
       }
     },

@@ -12,6 +12,7 @@ from .const import (
     CONF_CHARGE_POWER_KW,
     CONF_SAFETY_MARGIN_MINUTES,
     CONF_TARGET_SOC,
+    CONF_CHEAP_HOURS,
 )
 from .coordinator import SmartEVChargingRuntime
 from .entity import SmartEVChargingEntity
@@ -30,6 +31,7 @@ async def async_setup_entry(
             SmartEVChargePowerNumber(runtime),
             SmartEVChargeEfficiencyNumber(runtime),
             SmartEVSafetyMarginNumber(runtime),
+            SmartEVCheapHoursNumber(runtime),
         ]
     )
 
@@ -120,3 +122,27 @@ class SmartEVSafetyMarginNumber(SmartEVChargingEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         self.runtime.set_setting(CONF_SAFETY_MARGIN_MINUTES, value)
+
+
+class SmartEVCheapHoursNumber(SmartEVChargingEntity, NumberEntity):
+    """Maximum cheap charging hours in the rolling 24-hour strategy."""
+
+    _attr_translation_key = "cheap_hours"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_native_min_value = 0.25
+    _attr_native_max_value = 24.0
+    _attr_native_step = 0.25
+    _attr_native_unit_of_measurement = UnitOfTime.HOURS
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "cheap_hours")
+
+    @property
+    def native_value(self) -> float:
+        return self.runtime.cheap_hours
+
+    async def async_set_native_value(self, value: float) -> None:
+        if not 0.25 <= value <= 24:
+            raise ValueError("cheap_hours must be between 0.25 and 24")
+        self.runtime.set_setting(CONF_CHEAP_HOURS, value)
