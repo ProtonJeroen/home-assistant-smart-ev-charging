@@ -3,20 +3,42 @@
     "abort": {
       "already_configured": "Deze SOC-entiteit is al geconfigureerd."
     },
+    "error": {
+      "invalid_price_entity": "De geselecteerde entiteit bevat geen ondersteund prices-attribuut."
+    },
     "step": {
       "user": {
         "data": {
           "battery_capacity_kwh": "Nominale bruikbare accucapaciteit",
           "name": "Naam van de auto",
+          "price_entity": "Elektriciteitsprijs-entiteit",
           "soc_entity": "SOC-entiteit"
         },
         "data_description": {
           "battery_capacity_kwh": "Vul de initiële bruikbare accucapaciteit in kWh in. De zelflerende batterijfunctie kan deze waarde later verfijnen.",
           "name": "Een herkenbare naam voor deze auto.",
+          "price_entity": "Optionele prijsbron met een prices-attribuut met from, till en price. De all-in elektriciteitsprijssensor van Frank Energie wordt ondersteund.",
           "soc_entity": "Selecteer de Home Assistant-entiteit die de actuele laadstatus van de tractieaccu in procenten geeft."
         },
         "description": "Configureer de voertuiggegevens die Smart EV Charging gebruikt.",
         "title": "Auto instellen"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_price_entity": "De geselecteerde entiteit bevat geen ondersteund prices-attribuut."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "price_entity": "Elektriciteitsprijs-entiteit"
+        },
+        "data_description": {
+          "price_entity": "Selecteer een sensor met een prices-attribuut. Kies bij Frank Energie de huidige all-in elektriciteitsprijssensor."
+        },
+        "description": "Configureer de dynamische elektriciteitsprijsbron voor Slim laden.",
+        "title": "Elektriciteitsprijsbron"
       }
     }
   },
@@ -60,11 +82,20 @@
       }
     },
     "sensor": {
+      "average_charge_price": {
+        "name": "Gemiddelde laadprijs"
+      },
       "current_soc": {
         "name": "Huidige SOC"
       },
+      "estimated_charge_cost": {
+        "name": "Geschatte laadkosten"
+      },
       "latest_start": {
         "name": "Uiterste starttijd"
+      },
+      "next_charge_start": {
+        "name": "Volgende laadstart"
       },
       "requested_power": {
         "name": "Aangevraagd vermogen"
@@ -85,10 +116,13 @@
           "departure_not_set": "Vertrektijd niet ingesteld",
           "must_charge_deadline": "Moet laden - deadline",
           "off": "Uit",
+          "price_source_not_configured": "Prijsbron niet ingesteld",
+          "smart_charge_slot": "Slim laadmoment",
           "target_reached": "Doel bereikt",
           "vehicle_data_unavailable": "Voertuigdata niet beschikbaar",
           "waiting_for_latest_start": "Wachten op uiterste starttijd",
-          "waiting_for_price_data": "Wachten op prijsdata"
+          "waiting_for_price_data": "Wachten op prijsdata",
+          "waiting_for_smart_slot": "Wachten op slim laadmoment"
         }
       }
     }
