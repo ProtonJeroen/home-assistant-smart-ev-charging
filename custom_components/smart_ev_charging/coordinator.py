@@ -59,6 +59,7 @@ class SmartEVChargingRuntime:
         self.hass = hass
         self.entry = entry
         self._listeners: set[Callable[[], None]] = set()
+        self._tracked_price_entity_id = self._configured_price_entity_id()
         self._settings: dict[str, float | str | None] = {
             CONF_TARGET_SOC: float(
                 entry.options.get(CONF_TARGET_SOC, DEFAULT_TARGET_SOC)
@@ -85,8 +86,8 @@ class SmartEVChargingRuntime:
     async def async_start(self) -> None:
         """Listen for source changes and time-based strategy transitions."""
         tracked_entities = [self.entry.data[CONF_SOC_ENTITY]]
-        if self.price_entity_id:
-            tracked_entities.append(self.price_entity_id)
+        if self._tracked_price_entity_id:
+            tracked_entities.append(self._tracked_price_entity_id)
 
         self.entry.async_on_unload(
             async_track_state_change_event(
@@ -161,14 +162,23 @@ class SmartEVChargingRuntime:
     def charging_mode(self) -> str:
         return str(self._settings[CONF_CHARGING_MODE])
 
-    @property
-    def price_entity_id(self) -> str | None:
-        """Return the configured generic price source entity."""
+    def _configured_price_entity_id(self) -> str | None:
+        """Return the currently configured generic price source entity."""
         value = self.entry.options.get(
             CONF_PRICE_ENTITY,
             self.entry.data.get(CONF_PRICE_ENTITY),
         )
         return str(value) if value else None
+
+    @property
+    def price_entity_id(self) -> str | None:
+        """Return the currently configured generic price source entity."""
+        return self._configured_price_entity_id()
+
+    @property
+    def tracked_price_entity_id(self) -> str | None:
+        """Return the price entity currently registered for state tracking."""
+        return self._tracked_price_entity_id
 
     @property
     def departure(self) -> datetime | None:
