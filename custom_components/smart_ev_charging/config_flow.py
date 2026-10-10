@@ -126,7 +126,9 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
                 if price_entity:
                     new_options[CONF_PRICE_ENTITY] = price_entity
                 else:
-                    new_options.pop(CONF_PRICE_ENTITY, None)
+                    # An explicit empty option masks a price source that may
+                    # have been selected during the initial config flow.
+                    new_options[CONF_PRICE_ENTITY] = ""
 
                 return self.async_create_entry(data=new_options)
 
