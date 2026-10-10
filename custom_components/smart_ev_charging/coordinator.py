@@ -188,7 +188,11 @@ class SmartEVChargingRuntime:
     @property
     def must_charge_now(self) -> bool:
         """Return whether charging can no longer safely be delayed."""
-        if self.charging_mode == MODE_OFF or self.target_reached:
+        if (
+            self.charging_mode == MODE_OFF
+            or self.current_soc is None
+            or self.target_reached
+        ):
             return False
 
         if self.charging_mode == MODE_CHARGE_NOW:
@@ -207,7 +211,11 @@ class SmartEVChargingRuntime:
         Smart-price preference will be added by the price planner. Until then,
         Smart mode only requests charging when the deadline becomes mandatory.
         """
-        if self.charging_mode == MODE_OFF or self.target_reached:
+        if (
+            self.charging_mode == MODE_OFF
+            or self.current_soc is None
+            or self.target_reached
+        ):
             return False
 
         if self.charging_mode == MODE_CHARGE_NOW:
