@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import math
 
 from .models import (
     ChargingEstimate,
@@ -157,4 +158,38 @@ def calculate_smart_plan(
         estimated_cost=estimated_cost,
         average_price=average_price,
         coverage_complete=coverage_complete,
+    )
+
+
+def calculate_rolling_plan(
+    price_slots: tuple[PriceSlot, ...],
+    now: datetime,
+    cheap_hours: float,
+    required_minutes: float,
+    charge_power_kw: float,
+) -> ChargingPlan:
+    """Choose up to N cheap hours in the next 24 elapsed hours.
+
+    The allowance is a cap per recalculation, not a daily charging quota.
+    SOC requirements can shorten it; no deadline fallback extends it.
+    UTC arithmetic keeps the horizon and slot durations correct across DST.
+    """
+    if not math.isfinite(cheap_hours) or not 0.25 <= cheap_hours <= 24:
+        raise ValueError("cheap_hours must be between 0.25 and 24")
+    if not math.isfinite(required_minutes) or required_minutes < 0:
+        raise ValueError("required_minutes must be finite and nonnegative")
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    start = now.astimezone(timezone.utc)
+    slots = tuple(
+        PriceSlot(
+            slot.start.astimezone(timezone.utc),
+            slot.end.astimezone(timezone.utc),
+            slot.price,
+        )
+        for slot in price_slots
+    )
+    return calculate_smart_plan(
+        slots, start, start + timedelta(hours=24),
+        min(required_minutes, cheap_hours * 60), charge_power_kw,
     )

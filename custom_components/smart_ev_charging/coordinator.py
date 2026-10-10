@@ -26,6 +26,7 @@ from .const import (
     CONF_CHARGE_EFFICIENCY,
     CONF_CHARGE_POWER_KW,
     CONF_CHARGING_MODE,
+    CONF_CHEAP_HOURS,
     CONF_DEPARTURE,
     CONF_PRICE_ENTITY,
     CONF_SAFETY_MARGIN_MINUTES,
@@ -34,12 +35,14 @@ from .const import (
     DEFAULT_CHARGE_EFFICIENCY,
     DEFAULT_CHARGE_POWER_KW,
     DEFAULT_CHARGING_MODE,
+    DEFAULT_CHEAP_HOURS,
     DEFAULT_SAFETY_MARGIN_MINUTES,
     DEFAULT_TARGET_SOC,
     MODE_CHARGE_NOW,
     MODE_OFF,
     MODE_READY_BY_DEPARTURE,
     MODE_SMART,
+    MODE_SMART_24H,
     PRICE_ATTRIBUTE,
     STATUS_CHARGE_NOW,
     STATUS_DEPARTURE_NOT_SET,
@@ -55,7 +58,11 @@ from .const import (
 )
 from .charger_control import ChargerControl
 from .models import ChargingEstimate, ChargingPlan, ChargingRequest
-from .planner import calculate_charging_estimate, calculate_smart_plan
+from .planner import (
+    calculate_charging_estimate,
+    calculate_rolling_plan,
+    calculate_smart_plan,
+)
 from .price import parse_price_slots
 
 
@@ -79,6 +86,9 @@ class SmartEVChargingRuntime:
                 entry.options.get(
                     CONF_CHARGE_EFFICIENCY, DEFAULT_CHARGE_EFFICIENCY
                 )
+            ),
+            CONF_CHEAP_HOURS: float(
+                entry.options.get(CONF_CHEAP_HOURS, DEFAULT_CHEAP_HOURS)
             ),
             CONF_DEPARTURE: entry.options.get(CONF_DEPARTURE),
             CONF_SAFETY_MARGIN_MINUTES: float(
@@ -159,6 +169,10 @@ class SmartEVChargingRuntime:
     @property
     def charge_power_kw(self) -> float:
         return float(self._settings[CONF_CHARGE_POWER_KW])
+
+    @property
+    def cheap_hours(self) -> float:
+        return float(self._settings[CONF_CHEAP_HOURS])
 
     @property
     def charge_efficiency(self) -> float:
@@ -338,6 +352,8 @@ class SmartEVChargingRuntime:
 
     @property
     def latest_start(self) -> datetime | None:
+        if self.charging_mode == MODE_SMART_24H:
+            return None
         estimate = self.charging_estimate
         ready_time = self.target_ready_time
         if estimate is None or ready_time is None:
@@ -352,7 +368,7 @@ class SmartEVChargingRuntime:
             return ()
 
         state = self.hass.states.get(entity_id)
-        if state is None:
+        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
             return ()
 
         timezone = (
@@ -368,6 +384,16 @@ class SmartEVChargingRuntime:
     def smart_plan(self) -> ChargingPlan | None:
         """Return the cheapest charge plan for the known price horizon."""
         estimate = self.charging_estimate
+        if self.charging_mode == MODE_SMART_24H:
+            if estimate is None or not self.price_entity_id:
+                return None
+            return calculate_rolling_plan(
+                self.price_slots,
+                dt_util.now(),
+                self.cheap_hours,
+                estimate.duration_minutes,
+                self.charge_power_kw,
+            )
         ready_time = self.target_ready_time
         if estimate is None or ready_time is None or not self.price_entity_id:
             return None
@@ -577,6 +603,9 @@ class SmartEVChargingRuntime:
         if self.charging_mode == MODE_CHARGE_NOW:
             return True
 
+        if self.charging_mode == MODE_SMART_24H:
+            return False
+
         latest_start = self.latest_start
         if latest_start is None:
             return False
@@ -599,7 +628,10 @@ class SmartEVChargingRuntime:
         if self.must_charge_now:
             return True
 
-        if self.charging_mode != MODE_SMART or not self.smart_plan_ready:
+        if (
+            self.charging_mode not in (MODE_SMART, MODE_SMART_24H)
+            or not self.smart_plan_ready
+        ):
             return False
 
         plan = self.smart_plan
@@ -631,13 +663,13 @@ class SmartEVChargingRuntime:
         if self.charging_mode == MODE_CHARGE_NOW:
             return STATUS_CHARGE_NOW
 
-        if self.departure is None:
+        if self.departure is None and self.charging_mode != MODE_SMART_24H:
             return STATUS_DEPARTURE_NOT_SET
 
         if self.must_charge_now:
             return STATUS_MUST_CHARGE_DEADLINE
 
-        if self.charging_mode == MODE_SMART:
+        if self.charging_mode in (MODE_SMART, MODE_SMART_24H):
             if not self.price_entity_id:
                 return STATUS_PRICE_SOURCE_NOT_CONFIGURED
             if not self.smart_plan_ready:

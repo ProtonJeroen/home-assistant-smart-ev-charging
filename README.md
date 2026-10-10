@@ -12,9 +12,11 @@ The integration is designed around interchangeable providers:
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.5.0
+## Current scope — v0.6.0
 
 Version 0.5 adds opt-in charger control, disabled by default.
+
+Version 0.6 adds **Cheapest hours within 24 hours**, without a departure time.
 
 It supports:
 
@@ -58,6 +60,36 @@ After installing v0.4.0:
 The planner only uses a smart schedule when price data continuously covers the planning window up to the requested ready time. If future prices are not published yet, the status remains **Waiting for price data**. The existing deadline fallback still takes priority, so once the latest safe start time is reached, charging becomes mandatory regardless of price availability.
 
 ## Smart plan behaviour
+
+### Cheapest hours within 24 hours (without departure)
+
+Select **Cheapest hours within 24 hours** as the charging mode, and set
+**Cheap charging hours (24 hours)**, for example 4, 5 or 16 hours. The default is
+4 hours; the setting accepts 0.25–24 hours in quarter-hour steps.
+
+This mode ranks the price intervals from now until 24 hours from now, crossing
+midnight as needed. Selected intervals need not be consecutive. The hours are
+a maximum: if reaching target SOC needs less time, the planner selects only
+that amount. Charging stops at target SOC or when valid vehicle data is lost,
+using the existing guarded charger controller.
+
+The window rolls forward on each recalculation; this is not a fixed calendar
+day, a daily energy quota or a promise to reach target SOC within 24 hours.
+If the hours cap is too small, the target may take longer to reach. The plan
+and chart update when SOC, prices, power, settings or time change.
+
+An existing departure setting and its safety margin are ignored in this mode.
+There is no mandatory deadline fallback outside the selected cheap slots.
+Complete price coverage for the next 24 elapsed hours is required; until then,
+the integration shows **Waiting for price data** and requests no charging.
+Time calculations use UTC so the horizon stays 24 hours across clock changes.
+
+In Dutch, select **Goedkoopste uren binnen 24 uur** and set
+**Goedkope laaduren (24 uur)**. For example: choose 4 hours, target SOC 90%,
+and leave departure empty. The planner then selects at most four hours of the
+cheapest available charging time, shortened if less is needed to reach 90%.
+
+### Smart charge with departure
 
 The planner:
 

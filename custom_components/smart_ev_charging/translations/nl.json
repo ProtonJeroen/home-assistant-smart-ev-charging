@@ -92,6 +92,9 @@
       },
       "target_soc": {
         "name": "Gewenste SOC"
+      },
+      "cheap_hours": {
+        "name": "Goedkope laaduren (24 uur)"
       }
     },
     "select": {
@@ -101,7 +104,8 @@
           "charge_now": "Nu laden",
           "off": "Uit",
           "ready_by_departure": "Klaar voor vertrek",
-          "smart": "Slim laden"
+          "smart": "Slim laden",
+          "smart_24h": "Goedkoopste uren binnen 24 uur"
         }
       }
     },
