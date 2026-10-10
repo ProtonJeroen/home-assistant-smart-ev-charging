@@ -12,9 +12,9 @@ The integration is designed around interchangeable providers:
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.3.1
+## Current scope — v0.4.0
 
-Version 0.3 is deliberately safe and does **not** control the charger.
+Version 0.4 is deliberately safe and does **not** control the charger.
 
 It supports:
 
@@ -38,7 +38,9 @@ It supports:
 - total planned charging minutes;
 - estimated charging cost;
 - energy-weighted average charging price;
-- planned slots exposed as attributes on the estimated-cost sensor.
+- planned slots exposed as attributes on the estimated-cost sensor;
+- chart-ready electricity-price data with selected charge blocks marked separately;
+- optional read-only charger data (status, connected state, actual power, current and session energy).
 
 ## Frank Energie
 
@@ -46,7 +48,7 @@ The maintained Frank Energie integration exposes its full price horizon in a `pr
 
 For Smart EV Charging, configure the **current all-in electricity price** sensor as the electricity price source.
 
-After installing v0.3.1:
+After installing v0.4.0:
 
 1. Open **Settings → Devices & services → Smart EV Charging**.
 2. Open the integration menu and choose **Configure**.
@@ -113,3 +115,52 @@ Version 0.3.1 adds dedicated planning entities so a dashboard can show the sched
 - **Planned charge duration** — total selected minutes.
 
 The charging-plan attributes also contain the selected price source, coverage status, required/planned minutes, current block start/end and next future start.
+
+
+## Price and charging bar chart
+
+Version 0.4 adds a **Price and charge chart** sensor. Its `bars` attribute contains the known price horizon split into chart segments with:
+
+- `from`
+- `till`
+- `midpoint`
+- `price`
+- `charging`
+
+Planned smart-charge segments are marked with `charging: true`. This makes it possible to render the normal electricity price in yellow bars and the selected charging blocks in green bars.
+
+An example for the HACS **ApexCharts Card** is included at:
+
+`docs/apexcharts-price-plan-card.yaml`
+
+Copy the YAML into a manual dashboard card and replace:
+
+`sensor.REPLACE_ME_price_chart`
+
+with the entity ID of the **Price and charge chart** sensor created for your vehicle.
+
+## Easee read-only connection
+
+Smart EV Charging intentionally reads charger data through existing Home Assistant entities instead of depending directly on one charger integration. This keeps the charger interface generic and lets Easee be the first provider without hard-coding Easee into the planner.
+
+Open:
+
+**Settings → Devices & services → Smart EV Charging → Configure**
+
+You can optionally select:
+
+- **Charger status entity** — for the Easee status sensor;
+- **Vehicle connected entity** — when a suitable binary sensor is available;
+- **Charger power entity** — actual Easee charging power;
+- **Charger current entity** — actual charging current;
+- **Session energy entity** — energy delivered in the current Easee session.
+
+The integration normalizes:
+
+- power to W;
+- current to A;
+- session energy to kWh.
+
+These values are read-only. Version 0.4 still cannot start or stop Easee and cannot change its current limit.
+
+For the current Easee dashboard shown during development, the most useful first mappings are the entities behind **Status**, **Vermogen** and **Sessie energie**. Current and connected-state sources are optional and can be added when suitable entities are available.

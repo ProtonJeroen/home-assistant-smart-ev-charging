@@ -18,7 +18,13 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CHARGER_OPTION_KEYS,
     CONF_BATTERY_CAPACITY_KWH,
+    CONF_CHARGER_CONNECTED_ENTITY,
+    CONF_CHARGER_CURRENT_ENTITY,
+    CONF_CHARGER_POWER_ENTITY,
+    CONF_CHARGER_SESSION_ENERGY_ENTITY,
+    CONF_CHARGER_STATUS_ENTITY,
     CONF_NAME,
     CONF_PRICE_ENTITY,
     CONF_SOC_ENTITY,
@@ -48,11 +54,26 @@ STEP_USER_DATA_SCHEMA = probatio.Schema(
     }
 )
 
-PRICE_OPTIONS_SCHEMA = probatio.Schema(
+PROVIDER_OPTIONS_SCHEMA = probatio.Schema(
     {
         probatio.Optional(CONF_PRICE_ENTITY): EntitySelector(
             EntitySelectorConfig(domain=["sensor"])
-        )
+        ),
+        probatio.Optional(CONF_CHARGER_STATUS_ENTITY): EntitySelector(
+            EntitySelectorConfig(domain=["sensor"])
+        ),
+        probatio.Optional(CONF_CHARGER_CONNECTED_ENTITY): EntitySelector(
+            EntitySelectorConfig(domain=["binary_sensor"])
+        ),
+        probatio.Optional(CONF_CHARGER_POWER_ENTITY): EntitySelector(
+            EntitySelectorConfig(domain=["sensor"])
+        ),
+        probatio.Optional(CONF_CHARGER_CURRENT_ENTITY): EntitySelector(
+            EntitySelectorConfig(domain=["sensor"])
+        ),
+        probatio.Optional(CONF_CHARGER_SESSION_ENERGY_ENTITY): EntitySelector(
+            EntitySelectorConfig(domain=["sensor"])
+        ),
     }
 )
 
@@ -114,7 +135,7 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Configure the electricity price source."""
+        """Configure optional price and read-only charger sources."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -130,22 +151,29 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
                     # have been selected during the initial config flow.
                     new_options[CONF_PRICE_ENTITY] = ""
 
+                for key in CHARGER_OPTION_KEYS:
+                    value = user_input.get(key)
+                    new_options[key] = value or ""
+
                 return self.async_create_entry(data=new_options)
 
         current_price_entity = self.config_entry.options.get(
             CONF_PRICE_ENTITY,
             self.config_entry.data.get(CONF_PRICE_ENTITY),
         )
-        suggested = (
-            {CONF_PRICE_ENTITY: current_price_entity}
-            if current_price_entity
-            else {}
-        )
+        suggested: dict[str, Any] = {}
+        if current_price_entity:
+            suggested[CONF_PRICE_ENTITY] = current_price_entity
+
+        for key in CHARGER_OPTION_KEYS:
+            value = self.config_entry.options.get(key)
+            if value:
+                suggested[key] = value
 
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                PRICE_OPTIONS_SCHEMA, suggested
+                PROVIDER_OPTIONS_SCHEMA, suggested
             ),
             errors=errors,
         )

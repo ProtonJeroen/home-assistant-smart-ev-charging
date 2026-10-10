@@ -32,13 +32,23 @@
     "step": {
       "init": {
         "data": {
-          "price_entity": "Elektriciteitsprijs-entiteit"
+          "price_entity": "Elektriciteitsprijs-entiteit",
+          "charger_status_entity": "Laadpaal status-entiteit",
+          "charger_connected_entity": "Auto aangesloten-entiteit",
+          "charger_power_entity": "Laadpaal vermogen-entiteit",
+          "charger_current_entity": "Laadstroom-entiteit",
+          "charger_session_energy_entity": "Sessie-energie-entiteit"
         },
         "data_description": {
-          "price_entity": "Selecteer een sensor met een prices-attribuut. Kies bij Frank Energie de huidige all-in elektriciteitsprijssensor."
+          "price_entity": "Selecteer een sensor met een prices-attribuut. Kies bij Frank Energie de huidige all-in elektriciteitsprijssensor.",
+          "charger_status_entity": "Optionele Easee/Home Assistant sensor met de laadpaalstatus.",
+          "charger_connected_entity": "Optionele binary_sensor die aangeeft of een auto is aangesloten.",
+          "charger_power_entity": "Optionele sensor voor het actuele laadvermogen; W en kW worden ondersteund.",
+          "charger_current_entity": "Optionele sensor voor de actuele laadstroom; A en mA worden ondersteund.",
+          "charger_session_energy_entity": "Optionele sensor voor energie in de huidige laadsessie; Wh, kWh en MWh worden ondersteund."
         },
-        "description": "Configureer de dynamische elektriciteitsprijsbron voor Slim laden.",
-        "title": "Elektriciteitsprijsbron"
+        "description": "Configureer de dynamische prijsbron en optionele read-only laadpaalgegevens.",
+        "title": "Prijsbron en laadpaal"
       }
     }
   },
@@ -49,6 +59,9 @@
       },
       "preferred_charge_now": {
         "name": "Bij voorkeur nu laden"
+      },
+      "charger_connected": {
+        "name": "Auto aangesloten"
       }
     },
     "datetime": {
@@ -136,6 +149,21 @@
       },
       "planned_charge_minutes": {
         "name": "Geplande laadduur"
+      },
+      "price_chart": {
+        "name": "Prijs- en laadgrafiek"
+      },
+      "charger_status": {
+        "name": "Laadpaalstatus"
+      },
+      "charger_power": {
+        "name": "Werkelijk laadvermogen"
+      },
+      "charger_current": {
+        "name": "Werkelijke laadstroom"
+      },
+      "charger_session_energy": {
+        "name": "Sessie-energie"
       }
     }
   },

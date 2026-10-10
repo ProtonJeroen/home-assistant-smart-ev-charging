@@ -16,7 +16,13 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CHARGER_OPTION_KEYS,
     CONF_BATTERY_CAPACITY_KWH,
+    CONF_CHARGER_CONNECTED_ENTITY,
+    CONF_CHARGER_CURRENT_ENTITY,
+    CONF_CHARGER_POWER_ENTITY,
+    CONF_CHARGER_SESSION_ENERGY_ENTITY,
+    CONF_CHARGER_STATUS_ENTITY,
     CONF_CHARGE_EFFICIENCY,
     CONF_CHARGE_POWER_KW,
     CONF_CHARGING_MODE,
@@ -59,7 +65,7 @@ class SmartEVChargingRuntime:
         self.hass = hass
         self.entry = entry
         self._listeners: set[Callable[[], None]] = set()
-        self._tracked_price_entity_id = self._configured_price_entity_id()
+        self._tracked_external_entity_ids = self._configured_external_entity_ids()
         self._settings: dict[str, float | str | None] = {
             CONF_TARGET_SOC: float(
                 entry.options.get(CONF_TARGET_SOC, DEFAULT_TARGET_SOC)
@@ -86,8 +92,7 @@ class SmartEVChargingRuntime:
     async def async_start(self) -> None:
         """Listen for source changes and time-based strategy transitions."""
         tracked_entities = [self.entry.data[CONF_SOC_ENTITY]]
-        if self._tracked_price_entity_id:
-            tracked_entities.append(self._tracked_price_entity_id)
+        tracked_entities.extend(sorted(self._tracked_external_entity_ids))
 
         self.entry.async_on_unload(
             async_track_state_change_event(
@@ -162,13 +167,38 @@ class SmartEVChargingRuntime:
     def charging_mode(self) -> str:
         return str(self._settings[CONF_CHARGING_MODE])
 
+    def _configured_option_entity_id(self, key: str) -> str | None:
+        """Return an optional source entity from options or initial data."""
+        value = self.entry.options.get(key, self.entry.data.get(key))
+        return str(value) if value else None
+
     def _configured_price_entity_id(self) -> str | None:
         """Return the currently configured generic price source entity."""
-        value = self.entry.options.get(
-            CONF_PRICE_ENTITY,
-            self.entry.data.get(CONF_PRICE_ENTITY),
-        )
-        return str(value) if value else None
+        return self._configured_option_entity_id(CONF_PRICE_ENTITY)
+
+    def _configured_external_entity_ids(self) -> set[str]:
+        """Return external entities that must trigger runtime refreshes."""
+        entity_ids: set[str] = set()
+        price_entity = self._configured_price_entity_id()
+        if price_entity:
+            entity_ids.add(price_entity)
+
+        for key in CHARGER_OPTION_KEYS:
+            entity_id = self._configured_option_entity_id(key)
+            if entity_id:
+                entity_ids.add(entity_id)
+
+        return entity_ids
+
+    @property
+    def configured_external_entity_ids(self) -> set[str]:
+        """Return the current set of configured external entities."""
+        return self._configured_external_entity_ids()
+
+    @property
+    def tracked_external_entity_ids(self) -> set[str]:
+        """Return external entities registered for state tracking."""
+        return set(self._tracked_external_entity_ids)
 
     @property
     def price_entity_id(self) -> str | None:
@@ -176,9 +206,97 @@ class SmartEVChargingRuntime:
         return self._configured_price_entity_id()
 
     @property
-    def tracked_price_entity_id(self) -> str | None:
-        """Return the price entity currently registered for state tracking."""
-        return self._tracked_price_entity_id
+    def charger_status_entity_id(self) -> str | None:
+        return self._configured_option_entity_id(CONF_CHARGER_STATUS_ENTITY)
+
+    @property
+    def charger_connected_entity_id(self) -> str | None:
+        return self._configured_option_entity_id(CONF_CHARGER_CONNECTED_ENTITY)
+
+    @property
+    def charger_power_entity_id(self) -> str | None:
+        return self._configured_option_entity_id(CONF_CHARGER_POWER_ENTITY)
+
+    @property
+    def charger_current_entity_id(self) -> str | None:
+        return self._configured_option_entity_id(CONF_CHARGER_CURRENT_ENTITY)
+
+    @property
+    def charger_session_energy_entity_id(self) -> str | None:
+        return self._configured_option_entity_id(
+            CONF_CHARGER_SESSION_ENERGY_ENTITY
+        )
+
+    def _source_state(self, entity_id: str | None):
+        """Return a usable Home Assistant source state."""
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+            return None
+        return state
+
+    def _numeric_source_value(self, entity_id: str | None) -> tuple[float, str] | None:
+        """Return a numeric source value and its unit."""
+        state = self._source_state(entity_id)
+        if state is None:
+            return None
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        unit = str(state.attributes.get("unit_of_measurement") or "")
+        return value, unit
+
+    @property
+    def charger_status(self) -> str | None:
+        state = self._source_state(self.charger_status_entity_id)
+        return state.state if state is not None else None
+
+    @property
+    def charger_connected(self) -> bool | None:
+        state = self._source_state(self.charger_connected_entity_id)
+        if state is None:
+            return None
+        if state.state == "on":
+            return True
+        if state.state == "off":
+            return False
+        return None
+
+    @property
+    def charger_power_w(self) -> float | None:
+        source = self._numeric_source_value(self.charger_power_entity_id)
+        if source is None:
+            return None
+        value, unit = source
+        if unit == "kW":
+            return value * 1000.0
+        if unit in ("MW",):
+            return value * 1_000_000.0
+        return value
+
+    @property
+    def charger_current_a(self) -> float | None:
+        source = self._numeric_source_value(self.charger_current_entity_id)
+        if source is None:
+            return None
+        value, unit = source
+        if unit == "mA":
+            return value / 1000.0
+        return value
+
+    @property
+    def charger_session_energy_kwh(self) -> float | None:
+        source = self._numeric_source_value(self.charger_session_energy_entity_id)
+        if source is None:
+            return None
+        value, unit = source
+        if unit == "Wh":
+            return value / 1000.0
+        if unit == "MWh":
+            return value * 1000.0
+        return value
 
     @property
     def departure(self) -> datetime | None:
@@ -391,6 +509,55 @@ class SmartEVChargingRuntime:
                 for slot in plan.slots
             ],
         }
+
+    @property
+    def price_chart_bars(self) -> list[dict[str, Any]]:
+        """Return price bars split at planned charging boundaries.
+
+        Each segment has a price and a charging flag, allowing dashboard cards
+        to render normal price bars in yellow and selected charging blocks in
+        green without duplicating the price scale.
+        """
+        price_slots = self.price_slots
+        if not price_slots:
+            return []
+
+        plan = self.smart_plan if self.smart_plan_ready else None
+        planned_slots = plan.slots if plan is not None else ()
+        bars: list[dict[str, Any]] = []
+
+        for price_slot in price_slots:
+            boundaries = {price_slot.start, price_slot.end}
+
+            for planned in planned_slots:
+                overlap_start = max(price_slot.start, planned.start)
+                overlap_end = min(price_slot.end, planned.end)
+                if overlap_end > overlap_start:
+                    boundaries.add(overlap_start)
+                    boundaries.add(overlap_end)
+
+            ordered = sorted(boundaries)
+            for start, end in zip(ordered, ordered[1:], strict=False):
+                if end <= start:
+                    continue
+
+                charging = any(
+                    planned.start < end and planned.end > start
+                    for planned in planned_slots
+                )
+                midpoint = start + (end - start) / 2
+
+                bars.append(
+                    {
+                        "from": start.isoformat(),
+                        "till": end.isoformat(),
+                        "midpoint": midpoint.isoformat(),
+                        "price": round(price_slot.price, 5),
+                        "charging": charging,
+                    }
+                )
+
+        return bars
 
     @property
     def must_charge_now(self) -> bool:

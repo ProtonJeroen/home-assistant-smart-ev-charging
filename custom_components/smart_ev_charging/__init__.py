@@ -14,9 +14,9 @@ type SmartEVChargingConfigEntry = ConfigEntry[SmartEVChargingRuntime]
 async def _async_config_entry_updated(
     hass: HomeAssistant, entry: SmartEVChargingConfigEntry
 ) -> None:
-    """Reload only when the externally tracked price source changes."""
+    """Reload when externally tracked source entities change."""
     runtime = entry.runtime_data
-    if runtime.price_entity_id != runtime.tracked_price_entity_id:
+    if runtime.configured_external_entity_ids != runtime.tracked_external_entity_ids:
         await hass.config_entries.async_reload(entry.entry_id)
 
 
