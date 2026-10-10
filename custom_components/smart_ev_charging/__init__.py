@@ -11,12 +11,25 @@ from .coordinator import SmartEVChargingRuntime
 type SmartEVChargingConfigEntry = ConfigEntry[SmartEVChargingRuntime]
 
 
+async def _async_config_entry_updated(
+    hass: HomeAssistant, entry: SmartEVChargingConfigEntry
+) -> None:
+    """Reload only when the externally tracked price source changes."""
+    runtime = entry.runtime_data
+    if runtime.price_entity_id != runtime.tracked_price_entity_id:
+        await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: SmartEVChargingConfigEntry
 ) -> bool:
     """Set up Smart EV Charging from a config entry."""
     runtime = SmartEVChargingRuntime(hass, entry)
     entry.runtime_data = runtime
+
+    entry.async_on_unload(
+        entry.add_update_listener(_async_config_entry_updated)
+    )
 
     await runtime.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
