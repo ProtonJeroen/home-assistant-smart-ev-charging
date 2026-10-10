@@ -15,7 +15,7 @@
           "soc_entity": "SOC-entiteit"
         },
         "data_description": {
-          "battery_capacity_kwh": "Vul de initiÃ«le bruikbare accucapaciteit in kWh in. De zelflerende batterijfunctie kan deze waarde later verfijnen.",
+          "battery_capacity_kwh": "Vul de initiële bruikbare accucapaciteit in kWh in. De zelflerende batterijfunctie kan deze waarde later verfijnen.",
           "name": "Een herkenbare naam voor deze auto.",
           "price_entity": "Optionele prijsbron met een prices-attribuut met from, till en price. De all-in elektriciteitsprijssensor van Frank Energie wordt ondersteund.",
           "soc_entity": "Selecteer de Home Assistant-entiteit die de actuele laadstatus van de tractieaccu in procenten geeft."
@@ -82,7 +82,7 @@
     },
     "number": {
       "charge_efficiency": {
-        "name": "LaadefficiÃ«ntie"
+        "name": "Laadefficiëntie"
       },
       "charge_power": {
         "name": "Laadvermogen"
