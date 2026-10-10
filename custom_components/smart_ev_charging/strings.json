@@ -95,7 +95,7 @@
         "name": "Latest start"
       },
       "next_charge_start": {
-        "name": "Next charge start"
+        "name": "Next future charge start"
       },
       "requested_power": {
         "name": "Requested power"
@@ -124,6 +124,18 @@
           "waiting_for_price_data": "Waiting for price data",
           "waiting_for_smart_slot": "Waiting for smart charge slot"
         }
+      },
+      "current_charge_start": {
+        "name": "Current charge block start"
+      },
+      "current_charge_end": {
+        "name": "Current charge block end"
+      },
+      "charging_plan": {
+        "name": "Charging plan"
+      },
+      "planned_charge_minutes": {
+        "name": "Planned charge duration"
       }
     }
   },

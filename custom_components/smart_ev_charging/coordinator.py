@@ -274,8 +274,8 @@ class SmartEVChargingRuntime:
         )
 
     @property
-    def next_charge_start(self) -> datetime | None:
-        """Return the next selected smart-charge slot start."""
+    def active_charge_slot(self):
+        """Return the currently active selected smart-charge slot, if any."""
         if not self.smart_plan_ready:
             return None
 
@@ -284,7 +284,55 @@ class SmartEVChargingRuntime:
             return None
 
         now = dt_util.now()
-        return next((slot.start for slot in plan.slots if slot.end > now), None)
+        return next(
+            (slot for slot in plan.slots if slot.start <= now < slot.end),
+            None,
+        )
+
+    @property
+    def current_charge_start(self) -> datetime | None:
+        """Return the start of the currently active smart-charge slot."""
+        slot = self.active_charge_slot
+        return slot.start if slot is not None else None
+
+    @property
+    def current_charge_end(self) -> datetime | None:
+        """Return the end of the currently active smart-charge slot."""
+        slot = self.active_charge_slot
+        return slot.end if slot is not None else None
+
+    @property
+    def next_charge_start(self) -> datetime | None:
+        """Return the next future selected smart-charge slot start.
+
+        An active slot is deliberately excluded, so this entity always means
+        the next start after the current moment.
+        """
+        if not self.smart_plan_ready:
+            return None
+
+        plan = self.smart_plan
+        if plan is None:
+            return None
+
+        now = dt_util.now()
+        return next((slot.start for slot in plan.slots if slot.start > now), None)
+
+    @property
+    def planned_slot_count(self) -> int | None:
+        """Return the number of selected smart-charge slots."""
+        if not self.smart_plan_ready:
+            return None
+        plan = self.smart_plan
+        return len(plan.slots) if plan is not None else None
+
+    @property
+    def planned_minutes(self) -> float | None:
+        """Return total planned smart-charge minutes."""
+        if not self.smart_plan_ready:
+            return None
+        plan = self.smart_plan
+        return plan.planned_minutes if plan is not None else None
 
     @property
     def estimated_charge_cost(self) -> float | None:
@@ -313,11 +361,24 @@ class SmartEVChargingRuntime:
                 "slots": [],
             }
 
+        active = self.active_charge_slot
         return {
             "price_source": self.price_entity_id,
             "coverage_complete": plan.coverage_complete,
             "required_minutes": round(plan.required_minutes, 1),
             "planned_minutes": round(plan.planned_minutes, 1),
+            "planned_slot_count": len(plan.slots),
+            "current_slot_start": (
+                active.start.isoformat() if active is not None else None
+            ),
+            "current_slot_end": (
+                active.end.isoformat() if active is not None else None
+            ),
+            "next_charge_start": (
+                self.next_charge_start.isoformat()
+                if self.next_charge_start is not None
+                else None
+            ),
             "slots": [
                 {
                     "from": slot.start.isoformat(),

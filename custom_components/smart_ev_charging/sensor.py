@@ -40,7 +40,11 @@ async def async_setup_entry(
             SmartEVLatestStartSensor(runtime),
             SmartEVStatusSensor(runtime),
             SmartEVRequestedPowerSensor(runtime),
+            SmartEVCurrentChargeStartSensor(runtime),
+            SmartEVCurrentChargeEndSensor(runtime),
             SmartEVNextChargeStartSensor(runtime),
+            SmartEVChargingPlanSensor(runtime),
+            SmartEVPlannedChargeMinutesSensor(runtime),
             SmartEVEstimatedChargeCostSensor(runtime),
             SmartEVAverageChargePriceSensor(runtime),
         ]
@@ -181,6 +185,42 @@ class SmartEVRequestedPowerSensor(SmartEVChargingEntity, SensorEntity):
         return self.runtime.requested_power_w
 
 
+class SmartEVCurrentChargeStartSensor(SmartEVChargingEntity, SensorEntity):
+    """Start of the currently active smart-charge slot."""
+
+    _attr_translation_key = "current_charge_start"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "current_charge_start")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.current_charge_start is not None
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.runtime.current_charge_start
+
+
+class SmartEVCurrentChargeEndSensor(SmartEVChargingEntity, SensorEntity):
+    """End of the currently active smart-charge slot."""
+
+    _attr_translation_key = "current_charge_end"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "current_charge_end")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.current_charge_end is not None
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.runtime.current_charge_end
+
+
 class SmartEVNextChargeStartSensor(SmartEVChargingEntity, SensorEntity):
     """Next selected smart-charge interval."""
 
@@ -197,6 +237,50 @@ class SmartEVNextChargeStartSensor(SmartEVChargingEntity, SensorEntity):
     @property
     def native_value(self) -> datetime | None:
         return self.runtime.next_charge_start
+
+
+class SmartEVChargingPlanSensor(SmartEVChargingEntity, SensorEntity):
+    """Selected smart charging plan with all slots in attributes."""
+
+    _attr_translation_key = "charging_plan"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "charging_plan")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.planned_slot_count is not None
+
+    @property
+    def native_value(self) -> int | None:
+        return self.runtime.planned_slot_count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self.runtime.plan_attributes
+
+
+class SmartEVPlannedChargeMinutesSensor(SmartEVChargingEntity, SensorEntity):
+    """Total selected charging minutes in the smart plan."""
+
+    _attr_translation_key = "planned_charge_minutes"
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "planned_charge_minutes")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.planned_minutes is not None
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.planned_minutes
+        return None if value is None else round(value, 1)
 
 
 class SmartEVEstimatedChargeCostSensor(SmartEVChargingEntity, SensorEntity):

@@ -12,7 +12,7 @@ The integration is designed around interchangeable providers:
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
 - **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
 
-## Current scope — v0.3
+## Current scope — v0.3.1
 
 Version 0.3 is deliberately safe and does **not** control the charger.
 
@@ -32,7 +32,10 @@ It supports:
 - requested charging power in watts for future Home Energy Manager integration;
 - a generic dynamic-price source using a Home Assistant sensor with a `prices` attribute;
 - cheapest-slot planning across quarter-hour or hourly price intervals;
-- next planned charge start;
+- current smart-charge block start and end while a selected block is active;
+- next **future** planned charge start (the active block is no longer shown as the next start);
+- charging-plan sensor whose state is the number of selected blocks and whose attributes contain all planned start/stop times, prices, minutes, energy and cost;
+- total planned charging minutes;
 - estimated charging cost;
 - energy-weighted average charging price;
 - planned slots exposed as attributes on the estimated-cost sensor.
@@ -43,7 +46,7 @@ The maintained Frank Energie integration exposes its full price horizon in a `pr
 
 For Smart EV Charging, configure the **current all-in electricity price** sensor as the electricity price source.
 
-After installing v0.3:
+After installing v0.3.1:
 
 1. Open **Settings → Devices & services → Smart EV Charging**.
 2. Open the integration menu and choose **Configure**.
@@ -97,3 +100,16 @@ Smart EV Charging currently produces calculation, planning and power-request sig
 ## Status
 
 Early development / experimental.
+
+
+## Plan visibility
+
+Version 0.3.1 adds dedicated planning entities so a dashboard can show the schedule without reading raw attributes manually.
+
+- **Current charge block start** — available only while a selected smart-price block is active.
+- **Current charge block end** — when the current selected block will stop.
+- **Next future charge start** — strictly the next selected block after the current moment; it no longer points at a block that is already active.
+- **Charging plan** — the state is the number of selected blocks. Its attributes contain the full ordered slot list.
+- **Planned charge duration** — total selected minutes.
+
+The charging-plan attributes also contain the selected price source, coverage status, required/planned minutes, current block start/end and next future start.
