@@ -32,13 +32,23 @@
     "step": {
       "init": {
         "data": {
-          "price_entity": "Electricity price entity"
+          "price_entity": "Electricity price entity",
+          "charger_status_entity": "Charger status entity",
+          "charger_connected_entity": "Vehicle connected entity",
+          "charger_power_entity": "Charger power entity",
+          "charger_current_entity": "Charger current entity",
+          "charger_session_energy_entity": "Session energy entity"
         },
         "data_description": {
-          "price_entity": "Select a sensor with a prices attribute. For Frank Energie, choose the current all-in electricity price sensor."
+          "price_entity": "Select a sensor with a prices attribute. For Frank Energie, choose the current all-in electricity price sensor.",
+          "charger_status_entity": "Optional Easee/Home Assistant sensor containing charger status.",
+          "charger_connected_entity": "Optional binary_sensor indicating whether a vehicle is connected.",
+          "charger_power_entity": "Optional sensor for actual charger power; W and kW are supported.",
+          "charger_current_entity": "Optional sensor for actual charger current; A and mA are supported.",
+          "charger_session_energy_entity": "Optional sensor for energy in the current charging session; Wh, kWh and MWh are supported."
         },
-        "description": "Configure the dynamic electricity-price source used by Smart charge.",
-        "title": "Electricity price source"
+        "description": "Configure the dynamic price source and optional read-only charger data.",
+        "title": "Price source and charger"
       }
     }
   },
@@ -49,6 +59,9 @@
       },
       "preferred_charge_now": {
         "name": "Preferred charge now"
+      },
+      "charger_connected": {
+        "name": "Vehicle connected"
       }
     },
     "datetime": {
@@ -136,6 +149,21 @@
       },
       "planned_charge_minutes": {
         "name": "Planned charge duration"
+      },
+      "price_chart": {
+        "name": "Price and charge chart"
+      },
+      "charger_status": {
+        "name": "Charger status"
+      },
+      "charger_power": {
+        "name": "Actual charger power"
+      },
+      "charger_current": {
+        "name": "Actual charger current"
+      },
+      "charger_session_energy": {
+        "name": "Session energy"
       }
     }
   },
