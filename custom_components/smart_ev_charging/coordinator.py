@@ -53,6 +53,7 @@ from .const import (
     STATUS_WAITING_FOR_PRICE_DATA,
     STATUS_WAITING_FOR_SMART_SLOT,
 )
+from .charger_control import ChargerControl
 from .models import ChargingEstimate, ChargingPlan, ChargingRequest
 from .planner import calculate_charging_estimate, calculate_smart_plan
 from .price import parse_price_slots
@@ -64,6 +65,7 @@ class SmartEVChargingRuntime:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
+        self.control = ChargerControl(self)
         self._listeners: set[Callable[[], None]] = set()
         self._tracked_external_entity_ids = self._configured_external_entity_ids()
         self._settings: dict[str, float | str | None] = {
@@ -91,6 +93,8 @@ class SmartEVChargingRuntime:
 
     async def async_start(self) -> None:
         """Listen for source changes and time-based strategy transitions."""
+        self.entry.async_on_unload(self.control.cancel)
+        self.control.schedule()
         tracked_entities = [self.entry.data[CONF_SOC_ENTITY]]
         tracked_entities.extend(sorted(self._tracked_external_entity_ids))
 
@@ -129,6 +133,7 @@ class SmartEVChargingRuntime:
 
     @callback
     def _notify(self) -> None:
+        self.control.schedule()
         for listener in tuple(self._listeners):
             listener()
 

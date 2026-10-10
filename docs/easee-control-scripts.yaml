@@ -1,0 +1,39 @@
+# Add to scripts.yaml and replace the device ID in all three actions.
+easee_ev_resume:
+  alias: Easee EV resume
+  mode: single
+  sequence:
+    - action: easee.action_command
+      data:
+        device_id: REPLACE_WITH_EASEE_DEVICE_ID
+        action_command: resume
+
+easee_ev_pause:
+  alias: Easee EV pause
+  mode: single
+  sequence:
+    - action: easee.action_command
+      data:
+        device_id: REPLACE_WITH_EASEE_DEVICE_ID
+        action_command: pause
+
+easee_ev_current:
+  alias: Easee EV current limit
+  mode: single
+  fields:
+    current:
+      required: true
+      selector:
+        number:
+          min: 6
+          max: 16
+          step: 1
+          unit_of_measurement: A
+  sequence:
+    - condition: template
+      value_template: "{{ current is defined and current | float(0) >= 6 and current | float(0) <= 16 }}"
+    - action: easee.set_charger_dynamic_limit
+      data:
+        device_id: REPLACE_WITH_EASEE_DEVICE_ID
+        current: "{{ current | int }}"
+        time_to_live: 0

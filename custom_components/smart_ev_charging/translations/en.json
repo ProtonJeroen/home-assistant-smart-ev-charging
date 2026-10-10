@@ -27,7 +27,8 @@
   },
   "options": {
     "error": {
-      "invalid_price_entity": "The selected entity does not expose a supported prices attribute."
+      "invalid_price_entity": "The selected entity does not expose a supported prices attribute.",
+      "invalid_control": "Select three distinct scripts and a vehicle connected sensor."
     },
     "step": {
       "init": {
@@ -37,7 +38,12 @@
           "charger_connected_entity": "Vehicle connected entity",
           "charger_power_entity": "Charger power entity",
           "charger_current_entity": "Charger current entity",
-          "charger_session_energy_entity": "Session energy entity"
+          "charger_session_energy_entity": "Session energy entity",
+          "charger_control_enabled": "Charger control enabled",
+          "charger_start_entity": "Start script",
+          "charger_stop_entity": "Stop script",
+          "charger_limit_entity": "Current limit script",
+          "charger_phases": "Charging phases"
         },
         "data_description": {
           "price_entity": "Select a sensor with a prices attribute. For Frank Energie, choose the current all-in electricity price sensor.",
@@ -45,9 +51,14 @@
           "charger_connected_entity": "Optional binary_sensor indicating whether a vehicle is connected.",
           "charger_power_entity": "Optional sensor for actual charger power; W and kW are supported.",
           "charger_current_entity": "Optional sensor for actual charger current; A and mA are supported.",
-          "charger_session_energy_entity": "Optional sensor for energy in the current charging session; Wh, kWh and MWh are supported."
+          "charger_session_energy_entity": "Optional sensor for energy in the current charging session; Wh, kWh and MWh are supported.",
+          "charger_control_enabled": "Off by default. Requires valid SOC and a connected vehicle.",
+          "charger_start_entity": "Script that starts or resumes charging.",
+          "charger_stop_entity": "Script that pauses or stops charging.",
+          "charger_limit_entity": "Script accepting a current variable in amperes.",
+          "charger_phases": "Actual active phases, 1 or 3; 230 V per phase."
         },
-        "description": "Configure the dynamic price source and optional read-only charger data.",
+        "description": "Configure price sources, charger data and optional guarded control.",
         "title": "Price source and charger"
       }
     }

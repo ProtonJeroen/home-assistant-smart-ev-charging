@@ -19,6 +19,10 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CHARGER_OPTION_KEYS,
+    CONTROL_OPTION_KEYS,
+    CONTROL_ENTITY_KEYS,
+    CONF_CHARGER_CONTROL_ENABLED,
+    CONF_CHARGER_PHASES,
     CONF_BATTERY_CAPACITY_KWH,
     CONF_CHARGER_CONNECTED_ENTITY,
     CONF_CHARGER_CURRENT_ENTITY,
@@ -56,6 +60,9 @@ STEP_USER_DATA_SCHEMA = probatio.Schema(
 
 PROVIDER_OPTIONS_SCHEMA = probatio.Schema(
     {
+        probatio.Optional(CONF_CHARGER_CONTROL_ENABLED, default=False): bool,
+        probatio.Optional(CONF_CHARGER_PHASES, default=1): probatio.In([1, 3]),
+        **{probatio.Optional(key): EntitySelector(EntitySelectorConfig(domain=["script"])) for key in CONTROL_ENTITY_KEYS},
         probatio.Optional(CONF_PRICE_ENTITY): EntitySelector(
             EntitySelectorConfig(domain=["sensor"])
         ),
@@ -142,6 +149,12 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
             price_entity = user_input.get(CONF_PRICE_ENTITY)
             if not _valid_price_entity(self.hass, price_entity):
                 errors[CONF_PRICE_ENTITY] = "invalid_price_entity"
+            elif user_input.get(CONF_CHARGER_CONTROL_ENABLED) and (
+                not user_input.get(CONF_CHARGER_CONNECTED_ENTITY)
+                or any(not user_input.get(key) or self.hass.states.get(user_input[key]) is None for key in CONTROL_ENTITY_KEYS)
+                or len({user_input.get(key) for key in CONTROL_ENTITY_KEYS}) != 3
+            ):
+                errors["base"] = "invalid_control"
             else:
                 new_options = dict(self.config_entry.options)
                 if price_entity:
@@ -151,9 +164,9 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
                     # have been selected during the initial config flow.
                     new_options[CONF_PRICE_ENTITY] = ""
 
-                for key in CHARGER_OPTION_KEYS:
+                for key in (*CHARGER_OPTION_KEYS, *CONTROL_OPTION_KEYS):
                     value = user_input.get(key)
-                    new_options[key] = value or ""
+                    new_options[key] = value if value is not None else ""
 
                 return self.async_create_entry(data=new_options)
 
@@ -165,9 +178,9 @@ class SmartEVChargingOptionsFlow(config_entries.OptionsFlow):
         if current_price_entity:
             suggested[CONF_PRICE_ENTITY] = current_price_entity
 
-        for key in CHARGER_OPTION_KEYS:
+        for key in (*CHARGER_OPTION_KEYS, *CONTROL_OPTION_KEYS):
             value = self.config_entry.options.get(key)
-            if value:
+            if value is not None:
                 suggested[key] = value
 
         return self.async_show_form(

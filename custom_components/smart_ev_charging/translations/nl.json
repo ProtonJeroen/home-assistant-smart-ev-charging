@@ -15,7 +15,7 @@
           "soc_entity": "SOC-entiteit"
         },
         "data_description": {
-          "battery_capacity_kwh": "Vul de initiële bruikbare accucapaciteit in kWh in. De zelflerende batterijfunctie kan deze waarde later verfijnen.",
+          "battery_capacity_kwh": "Vul de initiÃ«le bruikbare accucapaciteit in kWh in. De zelflerende batterijfunctie kan deze waarde later verfijnen.",
           "name": "Een herkenbare naam voor deze auto.",
           "price_entity": "Optionele prijsbron met een prices-attribuut met from, till en price. De all-in elektriciteitsprijssensor van Frank Energie wordt ondersteund.",
           "soc_entity": "Selecteer de Home Assistant-entiteit die de actuele laadstatus van de tractieaccu in procenten geeft."
@@ -27,7 +27,8 @@
   },
   "options": {
     "error": {
-      "invalid_price_entity": "De geselecteerde entiteit bevat geen ondersteund prices-attribuut."
+      "invalid_price_entity": "De geselecteerde entiteit bevat geen ondersteund prices-attribuut.",
+      "invalid_control": "Selecteer drie verschillende scripts en een sensor voor verbonden voertuig."
     },
     "step": {
       "init": {
@@ -37,7 +38,12 @@
           "charger_connected_entity": "Auto aangesloten-entiteit",
           "charger_power_entity": "Laadpaal vermogen-entiteit",
           "charger_current_entity": "Laadstroom-entiteit",
-          "charger_session_energy_entity": "Sessie-energie-entiteit"
+          "charger_session_energy_entity": "Sessie-energie-entiteit",
+          "charger_control_enabled": "Laadpaalbediening ingeschakeld",
+          "charger_start_entity": "Startscript",
+          "charger_stop_entity": "Stopscript",
+          "charger_limit_entity": "Stroomlimietscript",
+          "charger_phases": "Aantal laadfasen"
         },
         "data_description": {
           "price_entity": "Selecteer een sensor met een prices-attribuut. Kies bij Frank Energie de huidige all-in elektriciteitsprijssensor.",
@@ -45,9 +51,14 @@
           "charger_connected_entity": "Optionele binary_sensor die aangeeft of een auto is aangesloten.",
           "charger_power_entity": "Optionele sensor voor het actuele laadvermogen; W en kW worden ondersteund.",
           "charger_current_entity": "Optionele sensor voor de actuele laadstroom; A en mA worden ondersteund.",
-          "charger_session_energy_entity": "Optionele sensor voor energie in de huidige laadsessie; Wh, kWh en MWh worden ondersteund."
+          "charger_session_energy_entity": "Optionele sensor voor energie in de huidige laadsessie; Wh, kWh en MWh worden ondersteund.",
+          "charger_control_enabled": "Standaard uit. Vereist geldige SOC en verbonden voertuig.",
+          "charger_start_entity": "Script dat laden start of hervat.",
+          "charger_stop_entity": "Script dat laden pauzeert of stopt.",
+          "charger_limit_entity": "Script met invoerveld current (ampère).",
+          "charger_phases": "Werkelijk aantal actieve fasen, 1 of 3; 230 V per fase."
         },
-        "description": "Configureer de dynamische prijsbron en optionele read-only laadpaalgegevens.",
+        "description": "Configureer prijsbron, laadpaaldata en optionele beveiligde bediening.",
         "title": "Prijsbron en laadpaal"
       }
     }
@@ -71,7 +82,7 @@
     },
     "number": {
       "charge_efficiency": {
-        "name": "Laadefficiëntie"
+        "name": "LaadefficiÃ«ntie"
       },
       "charge_power": {
         "name": "Laadvermogen"
