@@ -26,7 +26,7 @@ def requested_current(power: float, phases: int) -> int | None:
 
 
 class ChargerControl:
-    """Own only sessions started here; never take over manual charging."""
+    """Enforce the charging decision while explicit control is enabled."""
 
     def __init__(self, runtime):
         self.runtime = runtime
@@ -126,6 +126,28 @@ class ChargerControl:
             self.owned = False
             self.current = None
 
+    async def _pause_unwanted_charging(self, options):
+        """Reconcile charger-initiated sessions, including after a restart."""
+        r = self.runtime
+        if (self.closed or options != self._configuration()
+                or options.get("charger_control_enabled") is not True
+                or getattr(r, "charger_status", None) != "charging"
+                or r.charger_connected is not True
+                or r.current_soc is None or not math.isfinite(r.current_soc)
+                or not 0 <= r.current_soc <= 100
+                or not math.isfinite(r.target_soc) or not 0 <= r.target_soc <= 100):
+            return
+        entity = options.get("charger_stop_entity", "")
+        state = r.hass.states.get(entity)
+        if (not entity.startswith("script.") or state is None
+                or state.state not in ("on", "off")
+                or not r.hass.services.has_service("script", entity.split(".", 1)[1])):
+            return
+        # Mark before awaiting: a failed acknowledgement must remain retryable.
+        self.stop_entity = entity
+        self.owned = True
+        await self._stop()
+
     async def _run(self):
         while self.dirty and not self.closed:
             self.dirty = False
@@ -137,7 +159,10 @@ class ChargerControl:
                     # Disabled is an absolute no-command gate. Remember ownership
                     # so a subsequent explicit enable can reconcile the session.
                     if options.get("charger_control_enabled") is True:
-                        await self._stop()
+                        if self.owned:
+                            await self._stop()
+                        else:
+                            await self._pause_unwanted_charging(options)
                     continue
                 binding = tuple(options.get(key) for key in ("charger_start_entity", "charger_stop_entity", "charger_limit_entity", "charger_phases"))
                 if binding != self.binding:
