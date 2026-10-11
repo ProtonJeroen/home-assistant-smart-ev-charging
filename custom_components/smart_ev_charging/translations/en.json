@@ -52,7 +52,7 @@
           "charger_power_entity": "Optional sensor for actual charger power; W and kW are supported.",
           "charger_current_entity": "Optional sensor for actual charger current; A and mA are supported.",
           "charger_session_energy_entity": "Optional sensor for energy in the current charging session; Wh, kWh and MWh are supported.",
-          "charger_control_enabled": "Requires valid SOC, a connected vehicle and three scripts. Pause before disabling: disabled control sends no stop command either.",
+          "charger_control_enabled": "Requires valid SOC, a connected vehicle and three scripts. Pause before disabling: disabled control sends no stop command either. When enabled, charging started by the charger outside the plan is also paused.",
           "charger_start_entity": "Script that starts or resumes charging.",
           "charger_stop_entity": "Script that pauses or stops charging.",
           "charger_limit_entity": "Script accepting a current variable in amperes.",

@@ -268,8 +268,10 @@ Existing charger/circuit protections remain responsible for electrical safety.
 Missing, non-finite, out-of-range SOC/target, disconnected/unknown vehicle state,
 missing control scripts/services, or invalid selected charger telemetry block
 start/current commands. Target reached, no charging demand or invalid inputs
-pause a session previously started by this runtime. A manually started session
-is never stopped when this runtime has not taken ownership. A start failure
+pause a session previously started by this runtime. With control enabled, charger-reported `charging` is also paused when the
+planner does not permit charging, even if Easee started automatically on plug-in
+or Home Assistant has restarted. This requires valid SOC/target and a confirmed
+connected vehicle, plus an available pause script/service. A start failure
 triggers a best-effort stop because the command may have reached the charger.
 Failures are logged and retried on a later source update or minute tick.
 Commands run serially and unchanged requests are deduplicated. Inputs are checked
@@ -280,6 +282,8 @@ Pause first if needed, then disable. Unloading/restarting Home Assistant cancels
 pending work and forgets session ownership; it cannot guarantee a physical stop
 when Home Assistant, the network, or Easee Cloud is unavailable. Changing tracked
 telemetry selections reloads the integration and also resets ownership.
+Once valid sources recover, unwanted charger-reported charging is reconciled
+on the next source update or minute tick.
 Configure charger-side safeguards separately. Do not run competing charging
 automations or Easee schedules alongside this controller. Selected scripts must
 be short, synchronous service wrappers without delays, queues or

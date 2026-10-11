@@ -38,6 +38,48 @@ class ControlTest(unittest.IsolatedAsyncioTestCase):
             setattr(self.r, field, old)
         self.assertEqual(self.calls, [])
 
+    async def test_charger_started_outside_schedule_is_paused_after_restart(self):
+        self.r.charger_status = 'charging'
+        self.r.preferred_charge_now = False
+        self.r.requested_power_w = 0
+        await self.run_control()
+        self.assertEqual(self.calls, [('script', 'easee_pause', {})])
+        self.r.charger_status = 'awaiting_start'
+        await self.run_control()
+        self.assertEqual(len(self.calls), 1)
+        self.r.preferred_charge_now = True
+        self.r.requested_power_w = 3600
+        await self.run_control()
+        self.assertEqual(self.calls[-1][1], 'easee_resume')
+
+    async def test_external_charging_is_not_touched_without_valid_vehicle_data(self):
+        self.r.charger_status = 'charging'
+        self.r.preferred_charge_now = False
+        for field, value in [('current_soc', None), ('current_soc', float('nan')),
+                             ('charger_connected', None), ('charger_connected', False),
+                             ('target_soc', float('nan'))]:
+            old = getattr(self.r, field)
+            setattr(self.r, field, value)
+            await self.run_control()
+            setattr(self.r, field, old)
+        self.assertEqual(self.calls, [])
+
+    async def test_external_charging_disabled_or_missing_stop_service(self):
+        self.r.charger_status = 'charging'
+        self.r.preferred_charge_now = False
+        self.options['charger_control_enabled'] = False
+        await self.run_control()
+        self.options['charger_control_enabled'] = True
+        self.r.hass.services.has_service = lambda *_: False
+        await self.run_control()
+        self.assertEqual(self.calls, [])
+
+    async def test_external_charging_at_target_is_paused(self):
+        self.r.charger_status = 'charging'
+        self.r.current_soc = 80
+        await self.run_control()
+        self.assertEqual(self.calls, [('script', 'easee_pause', {})])
+
     async def test_owned_session_stops_on_soc_loss_and_target(self):
         for soc in (None, 80):
             self.r.current_soc = 40
