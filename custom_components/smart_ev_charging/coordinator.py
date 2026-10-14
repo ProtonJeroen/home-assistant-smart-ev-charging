@@ -56,6 +56,7 @@ from .const import (
     STATUS_WAITING_FOR_PRICE_DATA,
     STATUS_WAITING_FOR_SMART_SLOT,
 )
+from .battery_health import BatteryHealth
 from .charger_control import ChargerControl
 from .models import ChargingEstimate, ChargingPlan, ChargingRequest
 from .planner import (
@@ -73,6 +74,8 @@ class SmartEVChargingRuntime:
         self.hass = hass
         self.entry = entry
         self.control = ChargerControl(self)
+        self.battery_health = BatteryHealth()
+        self._health_store = None
         self._listeners: set[Callable[[], None]] = set()
         self._tracked_external_entity_ids = self._configured_external_entity_ids()
         self._settings: dict[str, float | str | None] = {
@@ -103,6 +106,11 @@ class SmartEVChargingRuntime:
 
     async def async_start(self) -> None:
         """Listen for source changes and time-based strategy transitions."""
+        from homeassistant.helpers.storage import Store
+
+        self._health_store = Store(self.hass, 1, f"smart_ev_charging.health.{self.entry.entry_id}")
+        self.battery_health.restore(await self._health_store.async_load(), self.health_context)
+        self._update_battery_health()
         self.entry.async_on_unload(self.control.cancel)
         self.control.schedule()
         tracked_entities = [self.entry.data[CONF_SOC_ENTITY]]
@@ -143,6 +151,7 @@ class SmartEVChargingRuntime:
 
     @callback
     def _notify(self) -> None:
+        self._update_battery_health()
         self.control.schedule()
         self._notify_listeners()
 
@@ -150,6 +159,32 @@ class SmartEVChargingRuntime:
     def _notify_listeners(self) -> None:
         for listener in tuple(self._listeners):
             listener()
+
+    @property
+    def health_context(self) -> list:
+        return [self.battery_capacity_kwh, self.charge_efficiency,
+                self.entry.data[CONF_SOC_ENTITY], self.charger_connected_entity_id,
+                self.charger_session_energy_entity_id]
+
+    def _update_battery_health(self) -> None:
+        connected = self.charger_connected
+        soc, energy = self.current_soc, self.charger_session_energy_kwh
+        # Never learn from cached values that have not been reported recently.
+        for entity_id in (self.entry.data[CONF_SOC_ENTITY],
+                          self.charger_session_energy_entity_id):
+            state = self.hass.states.get(entity_id) if entity_id else None
+            reported = getattr(state, "last_reported", None)
+            if reported is None or dt_util.now() - reported > timedelta(minutes=15):
+                soc = energy = None
+        changed = self.battery_health.observe(
+            connected, soc, energy, self.health_context)
+        if changed and self._health_store is not None:
+            self._health_store.async_delay_save(self.battery_health.export, 5)
+
+    async def async_save_battery_health(self) -> None:
+        """Flush pending history writes before reloading this entry."""
+        if self._health_store is not None:
+            await self._health_store.async_save(self.battery_health.export())
 
     @property
     def current_soc(self) -> float | None:

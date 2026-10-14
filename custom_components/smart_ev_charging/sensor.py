@@ -35,6 +35,7 @@ async def async_setup_entry(
     runtime = entry.runtime_data
     entities: list[SensorEntity] = [
         SmartEVCurrentSOCSensor(runtime),
+        SmartEVCalculatedSOHSensor(runtime),
         SmartEVRequiredBatteryEnergySensor(runtime),
         SmartEVRequiredGridEnergySensor(runtime),
         SmartEVRequiredChargeTimeSensor(runtime),
@@ -475,4 +476,42 @@ class SmartEVControlStatusSensor(SmartEVChargingEntity, SensorEntity):
             "applied_current_a": control.current,
             "session_owned": control.owned,
             "next_charge_start": self.runtime.next_charge_start,
+        }
+
+
+class SmartEVCalculatedSOHSensor(SmartEVChargingEntity, SensorEntity):
+    """Capacity-based SOH estimate, independent of vehicle-reported SOH."""
+
+    _attr_translation_key = "calculated_soh"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:battery-heart-variant"
+
+    def __init__(self, runtime: SmartEVChargingRuntime) -> None:
+        super().__init__(runtime, "calculated_soh")
+
+    @property
+    def available(self) -> bool:
+        return self.runtime.battery_health.capacity is not None
+
+    @property
+    def native_value(self) -> float | None:
+        capacity = self.runtime.battery_health.capacity
+        return None if capacity is None else round(100 * capacity / self.runtime.battery_capacity_kwh, 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        health = self.runtime.battery_health
+        return {
+            "accepted_sessions": len(health.samples),
+            "minimum_sessions": 3,
+            "minimum_soc_gain": 30,
+            "estimated_usable_capacity_kwh": None if health.capacity is None else round(health.capacity, 2),
+            "reference_usable_capacity_kwh": self.runtime.battery_capacity_kwh,
+            "assumed_efficiency_percent": self.runtime.charge_efficiency,
+            "sample_spread_percent": None if health.spread is None else round(health.spread, 2),
+            "estimate_quality": health.quality,
+            "last_observation": health.reason,
+            "method": "charger_energy_times_assumed_efficiency_over_soc_gain",
         }

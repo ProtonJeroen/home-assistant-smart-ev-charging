@@ -203,6 +203,9 @@
           "command_failed": "Opdracht aan laadpaal mislukt",
           "stop_failed": "Stopopdracht mislukt — controleer laadpaal"
         }
+      },
+      "calculated_soh": {
+        "name": "Berekende SOH"
       }
     }
   },

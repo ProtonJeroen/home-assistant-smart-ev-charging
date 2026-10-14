@@ -41,4 +41,7 @@ async def async_unload_entry(
     hass: HomeAssistant, entry: SmartEVChargingConfigEntry
 ) -> bool:
     """Unload a Smart EV Charging config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        await entry.runtime_data.async_save_battery_health()
+    return unloaded
