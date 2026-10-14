@@ -12,7 +12,7 @@ The integration is designed around interchangeable providers:
 - **Energy prices** — a generic Home Assistant price entity; Frank Energie is the first tested provider.
 - **Charger control** — optional guarded control through selected Home Assistant scripts, with Easee as the first example.
 - **Home Energy Manager** — Smart EV Charging exposes a generic requested-power signal so a central energy manager can decide how much power the EV may use.
-- **Battery learning** — future versions will learn usable battery capacity, charging efficiency and an estimated capacity-based SOH from real charging sessions.
+- **Calculated SOH** — a read-only capacity estimate from completed charging sessions, using your configured charging efficiency.
 
 ## Current scope — v0.6.2
 
@@ -310,3 +310,46 @@ no real Easee charger or live Home Assistant instance was available for hardware
 validation. Run `python -m unittest discover -s tests -v` for control contracts.
 For commissioning, observe a low-current start, waiting-slot pause, deadline
 start, SOC loss, disconnected vehicle and target reached, then disable control.
+
+
+## Calculated battery SOH / Berekende SOH
+
+The new **Calculated SOH** sensor estimates capacity-based health independently
+of vehicle-reported SOH. Select a connected binary sensor and charger session
+energy sensor in Configure; SOC must be kept updated by the vehicle integration.
+The configured battery capacity must be the vehicle's original **usable** capacity
+(e.g. 28 kWh only if that is the correct usable reference for your vehicle).
+
+For each observed plug-in session:
+
+`usable capacity = (end energy - start energy) * efficiency / SOC gain`
+
+Here efficiency and SOC gain are both in percentage units. SOH is this capacity
+divided by the configured original usable capacity, times 100. Efficiency is an
+assumption, not learned simultaneously. Charger energy includes losses and
+auxiliary consumption; temperature, SOC calibration and asynchronous sensor
+updates introduce systematic uncertainty that more sessions cannot eliminate.
+This is an indicative estimate, not a battery diagnostic or warranty measurement.
+Values above 100% are not silently capped.
+
+- At least 30 percentage points SOC gain and positive energy are required.
+- A session is finalized when the connected sensor changes to off, using its
+  last valid connected readings. Smart charging pauses do not end the session.
+- SOC and energy sources must report at least once every 15 minutes. Cached or
+  missing data during a session, a decreasing SOC or energy counter reset
+  discards that session. Samples outside 40–120% of reference capacity are rejected.
+- Three accepted sessions expose a provisional result; fewer show unavailable.
+- Five or more samples with relative standard deviation at most 5% are labelled
+  `consistent_estimate`. This describes repeatability, not guaranteed accuracy.
+  Five to ten comparable sessions is a practical collection target, not a
+  scientifically validated minimum. Repeated 20–100% charging is not required.
+- Attributes expose accepted session count, spread, reference capacity,
+  assumed efficiency, estimated capacity and the last observation reason.
+- The last 20 accepted capacities survive restarts. In-progress sessions do not;
+  after restart a fresh baseline is taken and must itself gain at least 30 points.
+  Changing SOC/energy/connection sources, reference capacity or efficiency resets
+  the history to avoid mixing incompatible estimates.
+
+The estimate does not alter charging power, charging decisions or planning capacity.
+Normal charging sessions are sufficient; do not charge to 100% solely to populate
+this sensor. No historical sessions are imported automatically.

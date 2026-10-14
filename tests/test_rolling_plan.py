@@ -92,6 +92,38 @@ class RuntimeTest(unittest.TestCase):
         entry = SimpleNamespace(data={'soc_entity':'sensor.soc', 'battery_capacity_kwh':28}, options={'charging_mode':'smart_24h','price_entity':'sensor.prices','charge_power_kw':3.6,'cheap_hours':4})
         self.r = runtime_module.SmartEVChargingRuntime(self.hass, entry)
 
+    def test_health_records_completed_sessions_and_schedules_storage(self):
+        self.r.entry.options.update(charger_connected_entity='binary_sensor.connected',
+                                    charger_session_energy_entity='sensor.energy')
+        connected = SimpleNamespace(state='on', attributes={})
+        energy = SimpleNamespace(state='0', attributes={'unit_of_measurement': 'kWh'}, last_reported=NOW)
+        self.state.last_reported = NOW
+        states = {'sensor.soc': self.state, 'sensor.energy': energy,
+                  'binary_sensor.connected': connected}
+        self.hass.states.get = states.get
+        saves = []
+        self.r._health_store = SimpleNamespace(async_delay_save=lambda getter, delay: saves.append(getter()))
+        for _ in range(3):
+            connected.state, self.state.state, energy.state = 'on', '20', '0'
+            self.r._update_battery_health()
+            self.state.state, energy.state = '100', str(26.6 * 80 / 92)
+            self.r._update_battery_health()
+            connected.state = 'off'
+            self.r._update_battery_health()
+        self.assertAlmostEqual(self.r.battery_health.capacity, 26.6)
+        self.assertEqual(len(saves[-1]['samples']), 3)
+
+    def test_health_rejects_stale_soc(self):
+        self.r.entry.options.update(charger_connected_entity='binary_sensor.connected',
+                                    charger_session_energy_entity='sensor.energy')
+        self.state.last_reported = NOW - timedelta(minutes=16)
+        self.hass.states.get = {'sensor.soc': self.state,
+            'binary_sensor.connected': SimpleNamespace(state='on'),
+            'sensor.energy': SimpleNamespace(state='10', attributes={'unit_of_measurement':'kWh'}, last_reported=NOW)}.get
+        self.r._update_battery_health()
+        self.assertIsNone(self.r.battery_health.active)
+        self.assertEqual(self.r.battery_health.reason, 'source_data_unavailable')
+
     def test_without_departure_starts_in_selected_slot(self):
         self.assertIsNone(self.r.departure)
         self.assertTrue(self.r.smart_plan_ready)

@@ -203,6 +203,9 @@
           "command_failed": "Charger command failed",
           "stop_failed": "Charger stop failed — check charger"
         }
+      },
+      "calculated_soh": {
+        "name": "Calculated SOH"
       }
     }
   },
