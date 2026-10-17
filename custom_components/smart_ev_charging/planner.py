@@ -168,28 +168,39 @@ def calculate_rolling_plan(
     required_minutes: float,
     charge_power_kw: float,
 ) -> ChargingPlan:
-    """Choose up to N cheap hours in the next 24 elapsed hours.
+    """Choose cheapest slots across all continuously available future prices.
 
-    The allowance is a cap per recalculation, not a daily charging quota.
-    SOC requirements can shorten it; no deadline fallback extends it.
-    UTC arithmetic keeps the horizon and slot durations correct across DST.
+    The legacy cheap_hours argument is retained for call compatibility but
+    does not limit charging: the required SOC determines charging duration.
+    No artificial 24-hour horizon or maximum waiting time is applied.
     """
-    if not math.isfinite(cheap_hours) or not 0.25 <= cheap_hours <= 24:
-        raise ValueError("cheap_hours must be between 0.25 and 24")
     if not math.isfinite(required_minutes) or required_minutes < 0:
         raise ValueError("required_minutes must be finite and nonnegative")
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
+
     start = now.astimezone(timezone.utc)
-    slots = tuple(
-        PriceSlot(
-            slot.start.astimezone(timezone.utc),
-            slot.end.astimezone(timezone.utc),
-            slot.price,
+    slots = tuple(sorted(
+        (
+            PriceSlot(
+                slot.start.astimezone(timezone.utc),
+                slot.end.astimezone(timezone.utc),
+                slot.price,
+            )
+            for slot in price_slots
+            if slot.end.astimezone(timezone.utc) > start
+        ),
+        key=lambda slot: slot.start,
+    ))
+    if not slots:
+        return calculate_smart_plan(
+            (), start, start + timedelta(seconds=1),
+            required_minutes, charge_power_kw,
         )
-        for slot in price_slots
-    )
+
+    # The price source determines the horizon, never a fixed number of hours.
+    # A gap in the data is rejected by calculate_smart_plan's coverage check.
+    end = max(slot.end for slot in slots)
     return calculate_smart_plan(
-        slots, start, start + timedelta(hours=24),
-        min(required_minutes, cheap_hours * 60), charge_power_kw,
+        slots, start, end, required_minutes, charge_power_kw,
     )
