@@ -310,3 +310,17 @@ no real Easee charger or live Home Assistant instance was available for hardware
 validation. Run `python -m unittest discover -s tests -v` for control contracts.
 For commissioning, observe a low-current start, waiting-slot pause, deadline
 start, SOC loss, disconnected vehicle and target reached, then disable control.
+
+
+## Available-price-horizon smart charging (v0.6.4)
+
+The rolling smart charging mode now selects the cheapest intervals from **all
+future prices currently published** by the configured provider, rather than
+only the next 24 hours. There is no maximum waiting time. The duration is
+based on the energy needed to reach target SOC; the old `cheap_hours` setting
+is retained for compatibility but is not used as a charging-duration cap in
+this mode. A complete, gap-free price horizon is required before a smart plan
+is activated. When new prices arrive the plan is recalculated.
+
+Departure-based planning remains limited by departure minus the safety margin.
+`Charge now` remains immediate. Charger safety controls are unchanged.
